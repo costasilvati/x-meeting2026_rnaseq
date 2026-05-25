@@ -1,0 +1,82 @@
+:root {
+  /* Cor principal dos títulos */
+  --section-title-color: #4A376F;
+  --link-color: #C1744B;
+}
+
+p.caption {
+  color: #777;
+  margin-top: 10px;
+}
+
+p code {
+  white-space: inherit;
+}
+
+pre {
+  word-break: normal;
+  word-wrap: normal;
+}
+
+pre code {
+  white-space: inherit;
+}
+
+/* =========================
+   Títulos das seções
+   ========================= */
+
+h1 {
+  color: var(--section-title-color);
+}
+
+h2 {
+  color: var(--section-title-color);
+}
+
+h3 {
+  color: var(--section-title-color);
+}
+
+h4 {
+  color: var(--section-title-color);
+}
+
+h5 {
+  color: var(--section-title-color);
+}
+
+h6 {
+  color: var(--section-title-color);
+}
+
+.book .book-body .page-wrapper .page-inner section.normal a {
+  color: var(--link-color) !important;
+}
+
+/* ======================================
+   Logo na barra lateral do GitBook
+   ====================================== */
+.book .book-summary ul.summary{
+  position: relative;
+}
+.book .book-summary {
+  padding-top: 190px;
+}
+
+.book .book-summary::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 160px;
+  height: 160px;
+
+  background-image: url("images/moeda-X-meeting-2026.svg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}

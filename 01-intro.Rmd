@@ -1,0 +1,60 @@
+# Mapeamento e contagem
+
+Esta atividade apresnta comandos básicos para alinhamento e contagem de reads mapeados em organismos com genoma anotado.
+
+Utilizaremos o pacote [*Rsubread*](https://bioconductor.org/packages/release/bioc/html/Rsubread.html) do Bioconductor.
+
+###Instalação
+
+```{r}
+library(BiocManager)
+BiocManager::install("Rsubread")
+library(Rsubread)
+```
+
+De modo geral mapeadores precisam de uma estrutura chamada index para fazer o mapeamento. Essa estrutura é construída com o arquivo .fasta do genoma ou transcriptoma.
+
+## Construindo um index com o genoma:
+
+```{r}
+ref <- system.file("extdata","reference.fa",package="Rsubread")
+
+ buildindex(basename="reference_index",reference=ref)
+
+```
+
+## Executando alinhamento
+
+Alinhando arquivos de sequenciamento *single-end* ao index criado anteriormente.
+
+```{r}
+reads <- system.file("extdata","reads.txt.gz",package="Rsubread")
+align.stat <- align(index="reference_index",readfile1=reads,output_file="alignResults.BAM",phredOffset=64)
+```
+
+### Alinhamento Paired-end
+
+```{r}
+reads1 <- system.file("extdata","reads1.txt.gz",package="Rsubread")
+reads2 <- system.file("extdata","reads2.txt.gz",package="Rsubread")
+align.stat2 <- align(index="reference_index",readfile1=reads1,readfile2=reads2, output_file="alignResultsPE.BAM",phredOffset=64)
+```
+
+## Conatgem
+
+Gerando a contagem de reads mapeados
+
+```{r}
+ ann <- data.frame(
+   GeneID=c("gene1","gene1","gene2","gene2"),
+   Chr="chr_dummy",Start=c(100,1000,3000,5000),
+   End=c(500,1800,4000,5500),
+   Strand=c("+","+","-","-"),
+   stringsAsFactors=FALSE)
+
+fc_SE <- featureCounts("alignResults.BAM",annot.ext=ann)
+
+# Paired-end
+fc_PE <- featureCounts("alignResultsPE.BAM",annot.ext=ann,isPairedEnd=TRUE)
+```
+

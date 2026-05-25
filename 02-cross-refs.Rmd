@@ -1,0 +1,171 @@
+# edgeR {#cross}
+
+## Utilizando *edgeR* para avaliar expressão
+
+Vamos utilizar o método paramétrico [edgeR](https://bioconductor.org/packages/release/bioc/html/edgeR.html).
+
+Você pode baixar o RData disponível [AQUI](https://github.com/costasilvati/consexpressionR/blob/master/data/gse95077.rda).
+
+
+<!-- ## Os passos da análise -->
+
+
+
+<!--     ![](images/galaxy-stop.png) -->
+
+
+## Introdução
+
+A análise de expressão diferencial de genes com dados de RNA-Seq utilizando o pacote R **edgeR** envolve várias etapas. Vejamos os passos principais e alguns dos parâmetros utilizados.
+
+## Passos para Análise de Expressão Diferencial com edgeR
+
+### Instalação e Carregamento do edgeR
+
+```{r}
+install.packages("BiocManager")
+BiocManager::install("edgeR")
+library(edgeR)
+```
+
+### Importação e Preparação dos Dados
+
+- **Leitura dos dados**: Importar os dados de contagem de RNA-Seq.
+- **Criação do objeto DGEList**: Este objeto armazena as contagens de genes e as informações de grupo.
+
+```{r}
+library(consexpressionR)
+library(edgeR)
+# Para arquivos de texto
+counts <- read.table("GSE95077_filtered.csv", 
+                     header=TRUE,
+                     sep = ",",
+                     row.names=1)
+
+
+```
+
+```{r}
+# dataset gse95077 contem 3 amostras de BM e 3 de JJ
+design <- rep(c("BM","JJ"), each = 3)
+#cria objeto edgeR
+y <- DGEList(counts = gse95077, group = design)
+
+```
+<!--
+```{r}
+#y.dge <- calcNormFactors(y.dge, method="TMM")
+#y.dge <- estimateDisp(y.dge)
+#y.dge <- estimateCommonDisp(y.dge)
+#y.et <- exactTest(y.dge)
+#y.tp <- topTags(y.et, n = 100000)
+#y.pvalues <- y.et$table$PValue
+```
+-->
+### Filtragem de Baixa Expressão
+
+- Remover genes com baixa contagem para reduzir o ruído.
+
+```{r}
+keep <- filterBy(y) # TRUE ou FALSE
+y <- y[keep, , keep.lib.sizes=FALSE]
+```
+
+### Normalização dos Dados
+
+- Normalizar as contagens para ajustar as diferenças na profundidade de sequenciamento.
+
+### O que é Normalização?
+
+A normalização é um processo fundamental na análise de dados de RNA-seq. Ela visa remover vieses sistemáticos nos dados, permitindo comparações mais precisas entre diferentes amostras.
+
+### Por que Normalizar?
+
+- **Comparabilidade:** Permite comparar níveis de expressão entre amostras com diferentes profundidades de sequenciamento.
+- **Identificação de genes diferencialmente expressos:** Ajuda a identificar genes realmente diferenciados entre condições.
+- **Melhora da precisão de testes estatísticos:** Aumenta a potência dos testes estatísticos.
+
+## O Método `calcNormFactors()`
+
+### Método TMM (Trimmed Mean of M-values)
+
+- **Cálculo de razões:** Calcula a razão das contagens de cada gene para cada par de amostras.
+- **Remoção de outliers:** Remove valores extremos dessas razões.
+- **Cálculo da média geométrica:** Calcula a média geométrica das razões restantes.
+- **Estimação dos fatores de normalização:** Estima fatores que fazem a média geométrica das razões normalizadas ser próxima a 1.
+
+## Outros Métodos de Normalização
+
+Além do TMM, o `edgeR` oferece outros métodos:
+
+- **RLE (Relative Log Expression):** Calcula um fator de normalização para cada amostra.
+- **Upper quartile:** Utiliza o quartil superior das razões de contagens.
+
+## Escolhendo o Método Adequado
+
+A escolha do método depende das características dos dados e dos objetivos da análise:
+
+- **TMM:** Geralmente o mais robusto e recomendado.
+- **RLE:** Mais simples e rápido, mas pode ser mais sensível a outliers.
+- **Upper quartile:** Menos utilizado e pode ser menos preciso.
+
+
+```{r}
+y <- calcNormFactors(y, method="TMM")
+# y <- calcNormFactors(y, method="TMMwsp")
+# y <- calcNormFactors(y, method="upperquartile")
+```
+
+## Estimativa da Dispersão
+
+A estimativa de dispersão no pacote **edgeR** é um passo crucial para a análise de expressão diferencial de genes. A dispersão é uma medida da variabilidade dos dados de contagem de RNA-Seq, e a função `estimateDisp` no edgeR estima três tipos de dispersão: *comum, trended e tagwise*. Vejamos uma explicação detalhada de cada uma delas:
+
+### Dispersão Comum
+
+A dispersão comum é uma única estimativa de dispersão que é aplicada a todos os genes. Esta estimativa assume que todos os genes têm a mesma variabilidade biológica. A função `estimateDisp` calcula a dispersão comum maximizando a verossimilhança negativa binomial para todos os genes combinados.
+
+### Dispersão Trended
+
+A dispersão trended leva em consideração que a variabilidade biológica pode variar com o nível de expressão do gene. Para estimar a dispersão trended, a função `estimateDisp` ajusta uma curva de suavização (usualmente usando métodos como `locfit` ou `loess`) aos valores de dispersão em função da abundância média dos genes. Isso permite que a dispersão varie de acordo com a expressão do gene, proporcionando uma estimativa mais precisa para genes com diferentes níveis de expressão.
+
+### Dispersão Tagwise
+
+A dispersão tagwise é uma estimativa específica para cada gene (ou tag). Esta estimativa é obtida ajustando um modelo empírico Bayesiano que combina a dispersão comum e a dispersão trended com a variabilidade observada para cada gene individualmente. Isso "espreme" as dispersões individuais em direção à tendência global, resultando em estimativas mais robustas, especialmente para genes com poucas contagens.
+
+### Processo de Estimativa
+
+A função `estimateDisp` realiza os seguintes passos para estimar as dispersões:
+
+1. **Cálculo da Verossimilhança**: Para cada gene, a função calcula uma matriz de verossimilhanças em um conjunto de pontos de grade de dispersão.
+2. **Ajuste da Curva de Tendência**: Se a dispersão trended for estimada, uma curva de suavização é ajustada aos valores de dispersão em função da abundância média dos genes.
+3. **Estimativa Empírica Bayesiana**: A função aplica um método empírico Bayesiano ponderado para obter as estimativas de dispersão posterior. Isso combina a informação da dispersão comum, trended e a variabilidade observada para cada gene.
+
+**Código: Estimar a dispersão comum, trended e tagwise.**
+
+```{r}
+y <- estimateDisp(y)
+```
+
+### Teste de Expressão Diferencial
+
+- Utilizar o teste exato de Fisher modificado para dados de contagem.
+
+```{r}
+et <- exactTest(y)
+```
+
+### Resultados
+
+- Extrair os resultados e visualizar os genes diferencialmente expressos.
+
+```{r}
+guardar <- topTags(et)
+```
+
+## Parâmetros Utilizados
+
+- **DGEList**: Cria um objeto que contém as contagens de genes e as informações de grupo.
+- **filterByExpr**: Filtra genes com baixa expressão para melhorar a precisão da análise.
+- **calcNormFactors**: Calcula fatores de normalização para ajustar as diferenças na profundidade de sequenciamento.
+- **estimateDisp**: Estima a dispersão dos dados, essencial para modelar a variabilidade biológica.
+- **exactTest**: Realiza o teste exato de Fisher modificado para identificar genes diferencialmente expressos.
