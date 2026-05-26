@@ -4,13 +4,13 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Expressão Diferencial de Genes com dados de RNA-Seq utilizando a linguagem R</title>
+  <title>Capítulo 2 Mapeamento e contagem | Expressão Diferencial de Genes com dados de RNA-Seq utilizando a linguagem R</title>
   <meta name="description" content="<p>This is tutorial developed using the bookdown package to write a book.
 The HTML output format for this is bookdown::gitbook,
 set in the _output.yml file.</p>" />
   <meta name="generator" content="bookdown 0.46 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Expressão Diferencial de Genes com dados de RNA-Seq utilizando a linguagem R" />
+  <meta property="og:title" content="Capítulo 2 Mapeamento e contagem | Expressão Diferencial de Genes com dados de RNA-Seq utilizando a linguagem R" />
   <meta property="og:type" content="book" />
   
   <meta property="og:description" content="<p>This is tutorial developed using the bookdown package to write a book.
@@ -19,7 +19,7 @@ set in the _output.yml file.</p>" />
   <meta name="github-repo" content="costasilvati/x-meeting2026_rnaseq" />
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Expressão Diferencial de Genes com dados de RNA-Seq utilizando a linguagem R" />
+  <meta name="twitter:title" content="Capítulo 2 Mapeamento e contagem | Expressão Diferencial de Genes com dados de RNA-Seq utilizando a linguagem R" />
   
   <meta name="twitter:description" content="<p>This is tutorial developed using the bookdown package to write a book.
 The HTML output format for this is bookdown::gitbook,
@@ -36,8 +36,8 @@ set in the _output.yml file.</p>" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   
   
-
-<link rel="next" href="mapeamento-e-contagem.html"/>
+<link rel="prev" href="index.html"/>
+<link rel="next" href="cross.html"/>
 <script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
@@ -211,26 +211,86 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
           <div class="page-inner">
 
             <section class="normal" id="section-">
-<div id="header">
-<h1 class="title">Expressão Diferencial de Genes com dados de RNA-Seq utilizando a linguagem R</h1>
-<p class="author"><em>Juliana Costa-Silva e Fabrício M. Lopes</em></p>
-<p class="date"><em>2026-05-26</em></p>
+<div id="mapeamento-e-contagem" class="section level1 hasAnchor" number="2">
+<h1><span class="header-section-number">Capítulo 2</span> Mapeamento e contagem<a href="mapeamento-e-contagem.html#mapeamento-e-contagem" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<div id="o-que-é-mapeamento" class="section level2 hasAnchor" number="2.1">
+<h2><span class="header-section-number">2.1</span> O que é mapeamento?<a href="mapeamento-e-contagem.html#o-que-%C3%A9-mapeamento" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>Vamos realizes um mapeamento manualmente.</p>
+<p><em>Trecho FASTA do transcritoma</em></p>
+<pre class="text"><code>&gt;transcrito_exemplo_01
+ATGCTAGCTACGATCGATCGTACGATGCTAGCTAGGCTAACGTTAGCTAGCTTACGATCGATCGGATCCGATGCTAGCTAACCGTACGATCGTTA</code></pre>
+<p><em>Reads simulados — 35 pb</em></p>
+<pre class="text"><code>&gt;read_01
+ATGCTAGCTACGATCGATCGTACGATGCTAGCTA
+
+&gt;read_02
+GATCGTACGATGCTAGCTAGGCTAACGTTAGCTA
+
+&gt;read_03
+CTAGGCTAACGTTAGCTAGCTTACGATCGATCGGA
+
+&gt;read_04
+TAGCTAGCTTACGATCGATCGGATCCGATGCTA
+
+&gt;read_05
+ATCGGATCCGATGCTAGCTAACCGTACGATCGTTA
+
+&gt;read_06
+GCTAACCGTACGATCGTTA</code></pre>
+<p><em>Como seria o mapeamento??</em></p>
+<p>Transcrito:</p>
+<pre class="text"><code>ATGCTAGCTACGATCGATCGTACGATGCTAGCTAGGCTAACGTTAGCTAGCTTACGATCGATCGGATCCGATGCTAGCTAACCGTACGATCGTTA
+1        10        20        30        40        50        60        70        80        90        100</code></pre>
+<p>Mapeamento dos reads:</p>
+<pre class="text"><code>read_01   1-35    ATGCTAGCTACGATCGATCGTACGATGCTAGCTA
+read_02  21-55                        TACGATGCTAGCTAGGCTAACGTTAGCTA
+read_03  36-70                                       GGCTAACGTTAGCTAGCTTACGATCGATCGGA
+read_04  51-84                                                      AGCTAGCTTACGATCGATCGGATCCGATGCTA
+read_05  67-101                                                                     TCGGATCCGATGCTAGCTAACCGTACGATCGTTA
+read_06  82-101                                                                                    GCTAACCGTACGATCGTTA</code></pre>
+<p>Observação: na lista anterior, o read_04 tem 34 pb, não 35 pb. Uma versão corrigida com 35 pb seria:</p>
+<pre class="text"><code>read_04  TAGCTAGCTTACGATCGATCGGATCCGATGCTAG</code></pre>
+<p>que mapearia nas posições 50–84.</p>
+<p>Esta atividade apresenta comandos básicos para alinhamento e contagem de reads mapeados em organismos com genoma anotado.</p>
+<p>Utilizaremos o pacote <a href="https://bioconductor.org/packages/release/bioc/html/Rsubread.html"><em>Rsubread</em></a> do Bioconductor.</p>
+<p>###Instalação</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="mapeamento-e-contagem.html#cb6-1" tabindex="-1"></a><span class="fu">library</span>(BiocManager)</span>
+<span id="cb6-2"><a href="mapeamento-e-contagem.html#cb6-2" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">&quot;Rsubread&quot;</span>)</span>
+<span id="cb6-3"><a href="mapeamento-e-contagem.html#cb6-3" tabindex="-1"></a><span class="fu">library</span>(Rsubread)</span></code></pre></div>
+<p>De modo geral mapeadores precisam de uma estrutura chamada index para fazer o mapeamento. Essa estrutura é construída com o arquivo .fasta do genoma ou transcriptoma.</p>
 </div>
-<div id="about" class="section level1 hasAnchor" number="1">
-<h1><span class="header-section-number">Capítulo 1</span> About<a href="index.html#about" class="anchor-section" aria-label="Anchor link to header"></a></h1>
-<p>Este livro foi desenvolvido como material de apoio do curso <em>Expressão Diferencial de Genes com dados de RNA-Seq utilizando a linguagem R</em>. Este curso compõe as atividades pré evento referentes ao <a href="https://www.x-meeting.com/events/2026">XXII Congresso Brasileiro de Bioinformática: X-Meeting 2026</a>.</p>
-<ul>
-<li><p><em>Data:</em> 25 a 28/05/2026;</p></li>
-<li><p><em>Local:</em> Online (Google Meeting AB3C);</p></li>
-<li><p><em>Horário:</em> 08:30AM as 11:30AM.</p></li>
-</ul>
-<div id="licença-de-uso-e-compartilhamento" class="section level2 hasAnchor" number="1.1">
-<h2><span class="header-section-number">1.1</span> Licença de Uso e Compartilhamento<a href="index.html#licen%C3%A7a-de-uso-e-compartilhamento" class="anchor-section" aria-label="Anchor link to header"></a></h2>
-<p>O material disponibilizado neste livro/site foi desenvolvido como material de apoio ao curso oferecido nas atividades pré-evento do <a href="https://www.x-meeting.com/events/2026">XXII Congresso Brasileiro de Bioinformática: X-Meeting 2026</a> e tem finalidade exclusivamente educacional, científica e acadêmica.</p>
-<p>É permitida a utilização deste material para estudo, ensino, reprodução parcial ou integral e adaptação para fins não comerciais, desde que a autoria e a fonte original sejam devidamente citadas.</p>
-<p>Ao utilizar trechos, figuras, códigos, tabelas ou demais conteúdos deste material em trabalhos acadêmicos, apresentações, aulas, relatórios, artigos ou outros meios de divulgação, solicita-se a referência ao livro/site original e aos respectivos autores.</p>
-<p>A redistribuição deste conteúdo em plataformas públicas, repositórios, ambientes virtuais de aprendizagem ou materiais derivados deve preservar os créditos de autoria e esta declaração de uso.</p>
-<p>Os códigos, exemplos e pipelines apresentados possuem caráter didático e podem necessitar de adaptações para diferentes ambientes computacionais, versões de software ou conjuntos de dados.</p>
+<div id="construindo-um-index-com-o-genoma" class="section level2 hasAnchor" number="2.2">
+<h2><span class="header-section-number">2.2</span> Construindo um index com o genoma:<a href="mapeamento-e-contagem.html#construindo-um-index-com-o-genoma" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="mapeamento-e-contagem.html#cb7-1" tabindex="-1"></a>ref <span class="ot">&lt;-</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>,<span class="st">&quot;reference.fa&quot;</span>,<span class="at">package=</span><span class="st">&quot;Rsubread&quot;</span>)</span>
+<span id="cb7-2"><a href="mapeamento-e-contagem.html#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="mapeamento-e-contagem.html#cb7-3" tabindex="-1"></a><span class="fu">buildindex</span>(<span class="at">basename=</span><span class="st">&quot;reference_index&quot;</span>,<span class="at">reference=</span>ref)</span></code></pre></div>
+</div>
+<div id="executando-alinhamento" class="section level2 hasAnchor" number="2.3">
+<h2><span class="header-section-number">2.3</span> Executando alinhamento<a href="mapeamento-e-contagem.html#executando-alinhamento" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>Alinhando arquivos de sequenciamento <em>single-end</em> ao index criado anteriormente.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="mapeamento-e-contagem.html#cb8-1" tabindex="-1"></a>reads <span class="ot">&lt;-</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>,<span class="st">&quot;reads.txt.gz&quot;</span>,<span class="at">package=</span><span class="st">&quot;Rsubread&quot;</span>)</span>
+<span id="cb8-2"><a href="mapeamento-e-contagem.html#cb8-2" tabindex="-1"></a>align.stat <span class="ot">&lt;-</span> <span class="fu">align</span>(<span class="at">index=</span><span class="st">&quot;reference_index&quot;</span>,<span class="at">readfile1=</span>reads,<span class="at">output_file=</span><span class="st">&quot;alignResults.BAM&quot;</span>,<span class="at">phredOffset=</span><span class="dv">64</span>)</span></code></pre></div>
+<div id="alinhamento-paired-end" class="section level3 hasAnchor" number="2.3.1">
+<h3><span class="header-section-number">2.3.1</span> Alinhamento Paired-end<a href="mapeamento-e-contagem.html#alinhamento-paired-end" class="anchor-section" aria-label="Anchor link to header"></a></h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="mapeamento-e-contagem.html#cb9-1" tabindex="-1"></a>reads1 <span class="ot">&lt;-</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>,<span class="st">&quot;reads1.txt.gz&quot;</span>,<span class="at">package=</span><span class="st">&quot;Rsubread&quot;</span>)</span>
+<span id="cb9-2"><a href="mapeamento-e-contagem.html#cb9-2" tabindex="-1"></a>reads2 <span class="ot">&lt;-</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>,<span class="st">&quot;reads2.txt.gz&quot;</span>,<span class="at">package=</span><span class="st">&quot;Rsubread&quot;</span>)</span>
+<span id="cb9-3"><a href="mapeamento-e-contagem.html#cb9-3" tabindex="-1"></a>align.stat2 <span class="ot">&lt;-</span> <span class="fu">align</span>(<span class="at">index=</span><span class="st">&quot;reference_index&quot;</span>,<span class="at">readfile1=</span>reads1,<span class="at">readfile2=</span>reads2, <span class="at">output_file=</span><span class="st">&quot;alignResultsPE.BAM&quot;</span>,<span class="at">phredOffset=</span><span class="dv">64</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="conatgem" class="section level2 hasAnchor" number="2.4">
+<h2><span class="header-section-number">2.4</span> Conatgem<a href="mapeamento-e-contagem.html#conatgem" class="anchor-section" aria-label="Anchor link to header"></a></h2>
+<p>Gerando a contagem de reads mapeados</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="mapeamento-e-contagem.html#cb10-1" tabindex="-1"></a> ann <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb10-2"><a href="mapeamento-e-contagem.html#cb10-2" tabindex="-1"></a>   <span class="at">GeneID=</span><span class="fu">c</span>(<span class="st">&quot;gene1&quot;</span>,<span class="st">&quot;gene1&quot;</span>,<span class="st">&quot;gene2&quot;</span>,<span class="st">&quot;gene2&quot;</span>),</span>
+<span id="cb10-3"><a href="mapeamento-e-contagem.html#cb10-3" tabindex="-1"></a>   <span class="at">Chr=</span><span class="st">&quot;chr_sdummy&quot;</span>,<span class="at">Start=</span><span class="fu">c</span>(<span class="dv">100</span>,<span class="dv">1000</span>,<span class="dv">3000</span>,<span class="dv">5000</span>),</span>
+<span id="cb10-4"><a href="mapeamento-e-contagem.html#cb10-4" tabindex="-1"></a>   <span class="at">End=</span><span class="fu">c</span>(<span class="dv">500</span>,<span class="dv">1800</span>,<span class="dv">4000</span>,<span class="dv">5500</span>),</span>
+<span id="cb10-5"><a href="mapeamento-e-contagem.html#cb10-5" tabindex="-1"></a>   <span class="at">Strand=</span><span class="fu">c</span>(<span class="st">&quot;+&quot;</span>,<span class="st">&quot;+&quot;</span>,<span class="st">&quot;-&quot;</span>,<span class="st">&quot;-&quot;</span>),</span>
+<span id="cb10-6"><a href="mapeamento-e-contagem.html#cb10-6" tabindex="-1"></a>   <span class="at">stringsAsFactors=</span><span class="cn">FALSE</span>)</span>
+<span id="cb10-7"><a href="mapeamento-e-contagem.html#cb10-7" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="mapeamento-e-contagem.html#cb10-8" tabindex="-1"></a>fc_SE <span class="ot">&lt;-</span> <span class="fu">featureCounts</span>(<span class="st">&quot;alignResults.BAM&quot;</span>,<span class="at">annot.ext=</span>ann)</span>
+<span id="cb10-9"><a href="mapeamento-e-contagem.html#cb10-9" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="mapeamento-e-contagem.html#cb10-10" tabindex="-1"></a><span class="co"># Paired-end</span></span>
+<span id="cb10-11"><a href="mapeamento-e-contagem.html#cb10-11" tabindex="-1"></a>fc_PE <span class="ot">&lt;-</span> <span class="fu">featureCounts</span>(<span class="st">&quot;alignResultsPE.BAM&quot;</span>,<span class="at">annot.ext=</span>ann,<span class="at">isPairedEnd=</span><span class="cn">TRUE</span>)</span></code></pre></div>
 
 </div>
 </div>
@@ -239,8 +299,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
           </div>
         </div>
       </div>
-
-<a href="mapeamento-e-contagem.html" class="navigation navigation-next navigation-unique" aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="index.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="cross.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>
@@ -271,7 +331,7 @@ gitbook.start({
     "size": 2
   },
   "edit": {
-    "link": "https://github.com/costasilvati/x-meeting2026_rnaseq/edit/main/index.Rmd",
+    "link": "https://github.com/costasilvati/x-meeting2026_rnaseq/edit/main/01-intro.Rmd",
     "text": "Editar "
   },
   "history": {

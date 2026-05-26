@@ -1,12 +1,73 @@
 # Mapeamento e contagem
 
-Esta atividade apresnta comandos básicos para alinhamento e contagem de reads mapeados em organismos com genoma anotado.
+## O que é mapeamento?
+
+Vamos realizes um mapeamento manualmente.
+
+*Trecho FASTA do transcritoma*
+
+```text      
+>transcrito_exemplo_01
+ATGCTAGCTACGATCGATCGTACGATGCTAGCTAGGCTAACGTTAGCTAGCTTACGATCGATCGGATCCGATGCTAGCTAACCGTACGATCGTTA
+```
+
+*Reads simulados — 35 pb*
+
+```text         
+>read_01
+ATGCTAGCTACGATCGATCGTACGATGCTAGCTA
+
+>read_02
+GATCGTACGATGCTAGCTAGGCTAACGTTAGCTA
+
+>read_03
+CTAGGCTAACGTTAGCTAGCTTACGATCGATCGGA
+
+>read_04
+TAGCTAGCTTACGATCGATCGGATCCGATGCTA
+
+>read_05
+ATCGGATCCGATGCTAGCTAACCGTACGATCGTTA
+
+>read_06
+GCTAACCGTACGATCGTTA
+```
+
+*Como seria o mapeamento??*
+
+Transcrito:
+
+```text        
+ATGCTAGCTACGATCGATCGTACGATGCTAGCTAGGCTAACGTTAGCTAGCTTACGATCGATCGGATCCGATGCTAGCTAACCGTACGATCGTTA
+1        10        20        30        40        50        60        70        80        90        100
+```
+
+Mapeamento dos reads:
+
+```text
+read_01   1-35    ATGCTAGCTACGATCGATCGTACGATGCTAGCTA
+read_02  21-55                        TACGATGCTAGCTAGGCTAACGTTAGCTA
+read_03  36-70                                       GGCTAACGTTAGCTAGCTTACGATCGATCGGA
+read_04  51-84                                                      AGCTAGCTTACGATCGATCGGATCCGATGCTA
+read_05  67-101                                                                     TCGGATCCGATGCTAGCTAACCGTACGATCGTTA
+read_06  82-101                                                                                    GCTAACCGTACGATCGTTA
+```
+
+Observação: na lista anterior, o read_04 tem 34 pb, não 35 pb. Uma versão corrigida com 35 pb seria:
+
+```text        
+read_04  TAGCTAGCTTACGATCGATCGGATCCGATGCTAG
+```
+
+que mapearia nas posições 50–84.
+
+Esta atividade apresenta comandos básicos para alinhamento e contagem de reads mapeados em organismos com genoma anotado.
 
 Utilizaremos o pacote [*Rsubread*](https://bioconductor.org/packages/release/bioc/html/Rsubread.html) do Bioconductor.
 
 ###Instalação
 
-```{r}
+```{r, eval=FALSE}
 library(BiocManager)
 BiocManager::install("Rsubread")
 library(Rsubread)
@@ -16,10 +77,10 @@ De modo geral mapeadores precisam de uma estrutura chamada index para fazer o ma
 
 ## Construindo um index com o genoma:
 
-```{r}
+```{r, eval=FALSE}
 ref <- system.file("extdata","reference.fa",package="Rsubread")
 
- buildindex(basename="reference_index",reference=ref)
+buildindex(basename="reference_index",reference=ref)
 
 ```
 
@@ -27,14 +88,14 @@ ref <- system.file("extdata","reference.fa",package="Rsubread")
 
 Alinhando arquivos de sequenciamento *single-end* ao index criado anteriormente.
 
-```{r}
+```{r, eval=FALSE}
 reads <- system.file("extdata","reads.txt.gz",package="Rsubread")
 align.stat <- align(index="reference_index",readfile1=reads,output_file="alignResults.BAM",phredOffset=64)
 ```
 
 ### Alinhamento Paired-end
 
-```{r}
+```{r, eval=FALSE}
 reads1 <- system.file("extdata","reads1.txt.gz",package="Rsubread")
 reads2 <- system.file("extdata","reads2.txt.gz",package="Rsubread")
 align.stat2 <- align(index="reference_index",readfile1=reads1,readfile2=reads2, output_file="alignResultsPE.BAM",phredOffset=64)
@@ -44,10 +105,10 @@ align.stat2 <- align(index="reference_index",readfile1=reads1,readfile2=reads2, 
 
 Gerando a contagem de reads mapeados
 
-```{r}
+```{r, eval=FALSE}
  ann <- data.frame(
    GeneID=c("gene1","gene1","gene2","gene2"),
-   Chr="chr_dummy",Start=c(100,1000,3000,5000),
+   Chr="chr_sdummy",Start=c(100,1000,3000,5000),
    End=c(500,1800,4000,5500),
    Strand=c("+","+","-","-"),
    stringsAsFactors=FALSE)
@@ -57,4 +118,3 @@ fc_SE <- featureCounts("alignResults.BAM",annot.ext=ann)
 # Paired-end
 fc_PE <- featureCounts("alignResultsPE.BAM",annot.ext=ann,isPairedEnd=TRUE)
 ```
-

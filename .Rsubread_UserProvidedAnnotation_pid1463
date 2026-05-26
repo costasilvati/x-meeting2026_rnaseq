@@ -1,0 +1,5 @@
+geneid	chr	start	end	strand
+gene1	chr_sdummy	100	500	+
+gene1	chr_sdummy	1000	1800	+
+gene2	chr_sdummy	3000	4000	-
+gene2	chr_sdummy	5000	5500	-

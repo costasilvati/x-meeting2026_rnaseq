@@ -22,7 +22,7 @@ A análise de expressão diferencial de genes com dados de RNA-Seq utilizando o 
 
 ### Instalação e Carregamento do edgeR
 
-```{r}
+```{r, eval=FALSE}
 install.packages("BiocManager")
 BiocManager::install("edgeR")
 library(edgeR)
@@ -33,8 +33,7 @@ library(edgeR)
 - **Leitura dos dados**: Importar os dados de contagem de RNA-Seq.
 - **Criação do objeto DGEList**: Este objeto armazena as contagens de genes e as informações de grupo.
 
-```{r}
-library(consexpressionR)
+```{r, eval=FALSE}
 library(edgeR)
 # Para arquivos de texto
 counts <- read.table("GSE95077_filtered.csv", 
@@ -42,31 +41,33 @@ counts <- read.table("GSE95077_filtered.csv",
                      sep = ",",
                      row.names=1)
 
-
 ```
 
-```{r}
+
+Para utilizar o edgeR é necessário criar um objeto DGEList, este objeto exige o design do experimento:
+
+```{r, eval=FALSE}
 # dataset gse95077 contem 3 amostras de BM e 3 de JJ
 design <- rep(c("BM","JJ"), each = 3)
 #cria objeto edgeR
 y <- DGEList(counts = gse95077, group = design)
 
 ```
-<!--
-```{r}
-#y.dge <- calcNormFactors(y.dge, method="TMM")
-#y.dge <- estimateDisp(y.dge)
-#y.dge <- estimateCommonDisp(y.dge)
-#y.et <- exactTest(y.dge)
-#y.tp <- topTags(y.et, n = 100000)
-#y.pvalues <- y.et$table$PValue
+
+```{r, eval=FALSE}
+y.dge <- edgeR::calcNormFactors(y.dge, method="TMM")
+y.dge <- edgeR::estimateDisp(y.dge)
+y.dge <- edgeR::estimateCommonDisp(y.dge)
+y.et <- edgeR::exactTest(y.dge)
+y.tp <- edgeR::topTags(y.et, n = 100000)
+y.pvalues <- y.et$table$PValue
 ```
--->
+
 ### Filtragem de Baixa Expressão
 
 - Remover genes com baixa contagem para reduzir o ruído.
 
-```{r}
+```{r, eval=FALSE}
 keep <- filterBy(y) # TRUE ou FALSE
 y <- y[keep, , keep.lib.sizes=FALSE]
 ```
@@ -85,7 +86,7 @@ A normalização é um processo fundamental na análise de dados de RNA-seq. Ela
 - **Identificação de genes diferencialmente expressos:** Ajuda a identificar genes realmente diferenciados entre condições.
 - **Melhora da precisão de testes estatísticos:** Aumenta a potência dos testes estatísticos.
 
-## O Método `calcNormFactors()`
+## O Método calcNormFactors
 
 ### Método TMM (Trimmed Mean of M-values)
 
@@ -110,10 +111,10 @@ A escolha do método depende das características dos dados e dos objetivos da a
 - **Upper quartile:** Menos utilizado e pode ser menos preciso.
 
 
-```{r}
+```{r, eval=FALSE}
 y <- calcNormFactors(y, method="TMM")
-# y <- calcNormFactors(y, method="TMMwsp")
-# y <- calcNormFactors(y, method="upperquartile")
+y <- calcNormFactors(y, method="TMMwsp")
+y <- calcNormFactors(y, method="upperquartile")
 ```
 
 ## Estimativa da Dispersão
@@ -142,7 +143,7 @@ A função `estimateDisp` realiza os seguintes passos para estimar as dispersõe
 
 **Código: Estimar a dispersão comum, trended e tagwise.**
 
-```{r}
+```{r, eval=FALSE}
 y <- estimateDisp(y)
 ```
 
@@ -150,7 +151,7 @@ y <- estimateDisp(y)
 
 - Utilizar o teste exato de Fisher modificado para dados de contagem.
 
-```{r}
+```{r, eval=FALSE}
 et <- exactTest(y)
 ```
 
@@ -158,7 +159,7 @@ et <- exactTest(y)
 
 - Extrair os resultados e visualizar os genes diferencialmente expressos.
 
-```{r}
+```{r, eval=FALSE}
 guardar <- topTags(et)
 ```
 
