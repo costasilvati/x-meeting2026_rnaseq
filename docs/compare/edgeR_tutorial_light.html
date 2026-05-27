@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>edgeR — Tutorial | Workshop RNA-Seq</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f2ee;
+  --surface: #ffffff;
+  --surface2: #f0ede8;
+  --border: #ddd8d0;
+  --shadow: 0 2px 16px rgba(60,40,10,0.08);
+  --text: #2c2416;
+  --muted: #7a6e5f;
+  --accent: #1a6b4a;
+  --accent-light: #e8f5ef;
+  --accent-border: #b3d9c5;
+  --accent2: #c8520a;
+  --up: #c0392b;
+  --down: #1a5276;
+  --ns: #888;
+  --code-bg: #f8f6f2;
+  --blue: #1a5276;
+  --green: #1a6b4a;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif; font-size:15px; line-height:1.75; }
+
+/* NAV */
+.top-nav {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:10px 24px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:13px;
+}
+.top-nav a { color:var(--muted); text-decoration:none; }
+.top-nav a:hover { color:var(--accent); }
+.sep { color:var(--border); }
+.pkg-label {
+  background:var(--accent-light);
+  color:var(--accent);
+  border:1px solid var(--accent-border);
+  border-radius:3px;
+  padding:2px 10px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+}
+
+/* HEADER */
+header {
+  background:var(--surface);
+  border-bottom:2px solid var(--border);
+  padding:48px 40px 40px;
+  position:relative;
+  overflow:hidden;
+}
+header::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:radial-gradient(ellipse at 80% 50%, #e8f5ef88, transparent 60%);
+  pointer-events:none;
+}
+.header-tag {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--accent);
+  border:1.5px solid var(--accent);
+  padding:4px 12px;
+  border-radius:2px;
+  display:inline-block;
+  margin-bottom:18px;
+}
+h1 { font-family:'Lora',serif; font-size:clamp(2rem,4vw,3rem); font-weight:700; color:var(--text); line-height:1.15; }
+h1 em { color:var(--accent); font-style:italic; }
+.header-sub { margin-top:10px; color:var(--muted); max-width:580px; }
+
+/* PIPELINE */
+.pipeline {
+  display:flex;
+  overflow-x:auto;
+  border-bottom:2px solid var(--border);
+  background:var(--surface);
+  position:sticky;
+  top:0;
+  z-index:100;
+  scrollbar-width:none;
+  box-shadow:0 2px 8px rgba(60,40,10,0.06);
+}
+.pipeline::-webkit-scrollbar { display:none; }
+.pipe-step {
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:13px 20px;
+  cursor:pointer;
+  border:none;
+  border-bottom:3px solid transparent;
+  background:none;
+  font-family:'Nunito',sans-serif;
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+  white-space:nowrap;
+  transition:all .2s;
+}
+.pipe-step:hover { color:var(--text); background:var(--surface2); }
+.pipe-step.active { color:var(--accent); border-bottom-color:var(--accent); }
+.pipe-num {
+  width:22px; height:22px;
+  border-radius:50%;
+  border:2px solid currentColor;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px;
+  font-family:'IBM Plex Mono',monospace;
+}
+
+/* PROGRESS */
+.progress-bar { position:fixed; top:0; left:0; height:3px; background:var(--accent); z-index:9999; transition:width .3s; }
+
+/* CONTAINER */
+.container { max-width:1060px; margin:0 auto; padding:0 24px; }
+
+/* SECTIONS */
+.section { display:none; padding:48px 0; animation:fadeIn .35s ease; }
+.section.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.section-header { display:flex; align-items:flex-start; gap:16px; margin-bottom:32px; }
+.step-badge {
+  flex:none;
+  background:var(--accent);
+  color:#fff;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  padding:4px 10px;
+  border-radius:3px;
+  margin-top:6px;
+  letter-spacing:1px;
+}
+.section h2 { font-family:'Lora',serif; font-size:1.9rem; font-weight:700; color:var(--text); }
+.section h2 em { color:var(--accent); font-style:italic; }
+.section-desc { margin-top:6px; color:var(--muted); max-width:680px; }
+
+/* CARDS */
+.card {
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  padding:26px;
+  margin-bottom:18px;
+  box-shadow:var(--shadow);
+}
+.card-title {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.card-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* TABLE */
+.tbl-wrap { overflow-x:auto; margin:14px 0; }
+table { width:100%; border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:13px; }
+th { background:var(--surface2); color:var(--accent); padding:9px 14px; text-align:right; font-size:11px; letter-spacing:1px; border-bottom:2px solid var(--border); }
+th:first-child { text-align:left; }
+td { padding:9px 14px; border-bottom:1px solid var(--border); text-align:right; }
+td:first-child { text-align:left; font-weight:700; color:var(--accent); }
+tr:hover td { background:var(--accent-light); }
+.ctrl { color:var(--blue); }
+.treat { color:var(--accent2); }
+
+/* CODE */
+pre {
+  background:var(--code-bg);
+  border:1.5px solid var(--border);
+  border-left:4px solid var(--accent);
+  border-radius:8px;
+  padding:20px 22px;
+  overflow-x:auto;
+  margin:14px 0;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  line-height:1.85;
+}
+.r-comment { color:#888; font-style:italic; }
+.r-fn { color:var(--accent); font-weight:600; }
+.r-str { color:#7a2d00; }
+.r-num { color:var(--accent2); }
+.r-kw { color:var(--deseq,#1e4b8c); }
+.r-obj { color:var(--blue); }
+
+/* FORMULA */
+.formula-box {
+  background:var(--accent-light);
+  border:1.5px solid var(--accent-border);
+  border-radius:8px;
+  padding:22px 26px;
+  margin:18px 0;
+  text-align:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:1rem;
+  color:var(--accent);
+  position:relative;
+}
+.formula-box::before {
+  content:'FÓRMULA';
+  position:absolute;
+  top:7px; right:12px;
+  font-size:9px;
+  letter-spacing:2px;
+  color:var(--muted);
+}
+.formula-label { font-size:12px; color:var(--muted); margin-top:8px; font-family:'Nunito',sans-serif; }
+
+/* CALC STEPS */
+.calc-steps { display:grid; gap:10px; }
+.calc-row {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 16px;
+  background:var(--surface2);
+  border-radius:6px;
+  border-left:3px solid var(--border);
+  transition:border-color .2s;
+}
+.calc-row:hover { border-left-color:var(--accent); background:var(--accent-light); }
+.calc-gene { font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--accent); width:70px; flex:none; font-weight:600; }
+.calc-expr { flex:1; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); }
+.calc-result { font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:700; color:var(--text); }
+
+/* HIGHLIGHTS */
+.highlight {
+  background:var(--accent-light);
+  border:1.5px solid var(--accent-border);
+  border-radius:8px;
+  padding:18px 22px;
+  margin:16px 0;
+}
+.highlight.warn { background:#fff5f0; border-color:#f4c2a8; }
+.highlight.info { background:#eef3fc; border-color:#b3c5e8; }
+.hl-title { font-weight:700; color:var(--accent); margin-bottom:5px; font-size:14px; }
+.highlight.warn .hl-title { color:#c0580a; }
+.highlight.info .hl-title { color:#1e4b8c; }
+
+/* GRID */
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:640px){ .grid2{ grid-template-columns:1fr; } }
+
+/* RESULTS */
+.sig-up { color:var(--up); font-weight:700; }
+.sig-down { color:var(--down); font-weight:700; }
+.ns { color:var(--ns); }
+.badge { display:inline-block; font-size:11px; font-family:'IBM Plex Mono',monospace; padding:2px 8px; border-radius:3px; }
+.badge-up { background:#fde8e8; color:var(--up); border:1px solid #f4b8b8; }
+.badge-down { background:#e8eef8; color:var(--down); border:1px solid #b3c5e8; }
+.badge-ns { background:var(--surface2); color:var(--ns); border:1px solid var(--border); }
+
+/* TOOLTIP */
+.tooltip { position:relative; cursor:help; border-bottom:1.5px dashed var(--muted); }
+.tooltip:hover::after {
+  content:attr(data-tip);
+  position:absolute;
+  bottom:125%;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--text);
+  color:#fff;
+  font-size:12px;
+  padding:7px 12px;
+  border-radius:5px;
+  white-space:nowrap;
+  z-index:999;
+}
+
+/* NAV BUTTONS */
+.nav-btns { display:flex; gap:12px; justify-content:flex-end; margin-top:36px; padding-top:22px; border-top:1px solid var(--border); }
+.btn { padding:10px 24px; border-radius:5px; font-size:13px; font-family:'Nunito',sans-serif; cursor:pointer; transition:all .2s; font-weight:700; border:none; }
+.btn-outline { background:transparent; border:1.5px solid var(--border); color:var(--text); }
+.btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-primary:hover { background:#155a3d; }
+.btn-home { background:var(--surface2); color:var(--muted); border:1.5px solid var(--border); }
+.btn-home:hover { color:var(--text); border-color:var(--text); }
+
+p { margin-bottom:10px; }
+p:last-child { margin-bottom:0; }
+.inline-code { font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--surface2); border:1px solid var(--border); padding:1px 6px; border-radius:3px; color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+
+<nav class="top-nav">
+  <a href="rnaseq_workshop.html">← Portal</a>
+  <span class="sep">›</span>
+  <span class="pkg-label">edgeR</span>
+  <span class="sep">·</span>
+  <span style="color:var(--muted)">Empirical Bayes + GLM-QLF</span>
+</nav>
+
+<header>
+  <div class="container">
+    <div class="header-tag">edgeR · Bioconductor</div>
+    <h1>Expressão Diferencial<br>com <em>edgeR</em></h1>
+    <p class="header-sub">Modelo Binomial Negativa, normalização TMM e dispersão estimada por Empirical Bayes — cálculo passo a passo com dataset de referência.</p>
+  </div>
+</header>
+
+<nav class="pipeline" id="pipeline">
+  <button class="pipe-step active" onclick="goTo(0)"><span class="pipe-num">1</span> Dados Brutos</button>
+  <button class="pipe-step" onclick="goTo(1)"><span class="pipe-num">2</span> DGEList</button>
+  <button class="pipe-step" onclick="goTo(2)"><span class="pipe-num">3</span> Normalização TMM</button>
+  <button class="pipe-step" onclick="goTo(3)"><span class="pipe-num">4</span> Dispersão</button>
+  <button class="pipe-step" onclick="goTo(4)"><span class="pipe-num">5</span> Modelo GLM</button>
+  <button class="pipe-step" onclick="goTo(5)"><span class="pipe-num">6</span> Resultados</button>
+</nav>
+
+<div class="container">
+
+<!-- S0 -->
+<section class="section active" id="s0">
+  <div class="section-header">
+    <span class="step-badge">PASSO 01</span>
+    <div>
+      <h2>A Matriz de <em>Counts</em></h2>
+      <p class="section-desc">O edgeR trabalha com contagens brutas de reads mapeados — uma tabela genes × amostras com valores inteiros não normalizados.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 Dataset de referência — 6 genes × 6 amostras</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th class="ctrl">CTRL_1</th><th class="ctrl">CTRL_2</th><th class="ctrl">CTRL_3</th><th class="treat">TREAT_1</th><th class="treat">TREAT_2</th><th class="treat">TREAT_3</th></tr></thead>
+      <tbody>
+        <tr><td>GeneA</td><td>120</td><td>135</td><td>110</td><td>540</td><td>580</td><td>510</td></tr>
+        <tr><td>GeneB</td><td>800</td><td>820</td><td>790</td><td>810</td><td>795</td><td>825</td></tr>
+        <tr><td>GeneC</td><td>50</td><td>45</td><td>55</td><td>12</td><td>10</td><td>14</td></tr>
+        <tr><td>GeneD</td><td>300</td><td>290</td><td>310</td><td>305</td><td>295</td><td>315</td></tr>
+        <tr><td>GeneE</td><td>20</td><td>18</td><td>22</td><td>95</td><td>100</td><td>88</td></tr>
+        <tr><td>GeneF</td><td>1000</td><td>980</td><td>1020</td><td>990</td><td>1010</td><td>1000</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="grid2">
+    <div class="highlight"><div class="hl-title">🧬 Por que counts brutos?</div>O modelo Binomial Negativa do edgeR precisa da natureza discreta dos dados. FPKM/TPM destroem essa propriedade estatística.</div>
+    <div class="highlight warn"><div class="hl-title">⚠️ Replicatas biológicas</div>Mínimo recomendado: n=3 por grupo. Sem replicatas, a variabilidade biológica não pode ser estimada de forma confiável.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">💻 Código R</div>
+    <pre><span class="r-fn">library</span>(<span class="r-str">edgeR</span>)
+<span class="r-obj">counts</span> <span class="r-kw">&lt;-</span> <span class="r-fn">matrix</span>(<span class="r-fn">c</span>(
+  <span class="r-num">120</span>,<span class="r-num">135</span>,<span class="r-num">110</span>,<span class="r-num">540</span>,<span class="r-num">580</span>,<span class="r-num">510</span>,
+  <span class="r-num">800</span>,<span class="r-num">820</span>,<span class="r-num">790</span>,<span class="r-num">810</span>,<span class="r-num">795</span>,<span class="r-num">825</span>,
+   <span class="r-num">50</span>, <span class="r-num">45</span>, <span class="r-num">55</span>, <span class="r-num">12</span>, <span class="r-num">10</span>, <span class="r-num">14</span>,
+  <span class="r-num">300</span>,<span class="r-num">290</span>,<span class="r-num">310</span>,<span class="r-num">305</span>,<span class="r-num">295</span>,<span class="r-num">315</span>,
+   <span class="r-num">20</span>, <span class="r-num">18</span>, <span class="r-num">22</span>, <span class="r-num">95</span>,<span class="r-num">100</span>, <span class="r-num">88</span>,
+ <span class="r-num">1000</span>,<span class="r-num">980</span>,<span class="r-num">1020</span>,<span class="r-num">990</span>,<span class="r-num">1010</span>,<span class="r-num">1000</span>
+), nrow=<span class="r-num">6</span>, byrow=<span class="r-kw">TRUE</span>,
+   dimnames=<span class="r-fn">list</span>(<span class="r-fn">c</span>(<span class="r-str">"GeneA"</span>,<span class="r-str">"GeneB"</span>,<span class="r-str">"GeneC"</span>,<span class="r-str">"GeneD"</span>,<span class="r-str">"GeneE"</span>,<span class="r-str">"GeneF"</span>),
+                <span class="r-fn">c</span>(<span class="r-str">"CTRL_1"</span>,<span class="r-str">"CTRL_2"</span>,<span class="r-str">"CTRL_3"</span>,<span class="r-str">"TREAT_1"</span>,<span class="r-str">"TREAT_2"</span>,<span class="r-str">"TREAT_3"</span>)))
+<span class="r-obj">group</span> <span class="r-kw">&lt;-</span> <span class="r-fn">factor</span>(<span class="r-fn">c</span>(<span class="r-str">"CTRL"</span>,<span class="r-str">"CTRL"</span>,<span class="r-str">"CTRL"</span>,<span class="r-str">"TREAT"</span>,<span class="r-str">"TREAT"</span>,<span class="r-str">"TREAT"</span>))</pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-primary" onclick="goTo(1)">Próximo: DGEList →</button></div>
+</section>
+
+<!-- S1 -->
+<section class="section" id="s1">
+  <div class="section-header"><span class="step-badge">PASSO 02</span><div>
+    <h2>Criando o <em>DGEList</em></h2>
+    <p class="section-desc">O DGEList é o objeto central do edgeR. O primeiro cálculo automático é o tamanho de cada biblioteca (lib.size = soma de todos os counts por amostra).</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📐 lib.size — Tamanho da Biblioteca</div>
+    <div class="formula-box">lib.size<sub>j</sub> = Σ<sub>i</sub> counts<sub>ij</sub><div class="formula-label">Soma de todos os reads mapeados na amostra j</div></div>
+    <div class="calc-steps">
+      <div class="calc-row"><span class="calc-gene" style="color:var(--blue)">CTRL_1</span><span class="calc-expr">120 + 800 + 50 + 300 + 20 + 1000</span><span class="calc-result">= 2.290</span></div>
+      <div class="calc-row"><span class="calc-gene" style="color:var(--blue)">CTRL_2</span><span class="calc-expr">135 + 820 + 45 + 290 + 18 + 980</span><span class="calc-result">= 2.288</span></div>
+      <div class="calc-row"><span class="calc-gene" style="color:var(--blue)">CTRL_3</span><span class="calc-expr">110 + 790 + 55 + 310 + 22 + 1020</span><span class="calc-result">= 2.307</span></div>
+      <div class="calc-row"><span class="calc-gene" style="color:var(--accent2)">TREAT_1</span><span class="calc-expr">540 + 810 + 12 + 305 + 95 + 990</span><span class="calc-result">= 2.752</span></div>
+      <div class="calc-row"><span class="calc-gene" style="color:var(--accent2)">TREAT_2</span><span class="calc-expr">580 + 795 + 10 + 295 + 100 + 1010</span><span class="calc-result">= 2.790</span></div>
+      <div class="calc-row"><span class="calc-gene" style="color:var(--accent2)">TREAT_3</span><span class="calc-expr">510 + 825 + 14 + 315 + 88 + 1000</span><span class="calc-result">= 2.752</span></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-obj">dge</span> <span class="r-kw">&lt;-</span> <span class="r-fn">DGEList</span>(counts=<span class="r-obj">counts</span>, group=<span class="r-obj">group</span>)
+<span class="r-obj">dge</span>$samples  <span class="r-comment"># lib.size calculado automaticamente</span>
+<span class="r-comment">#         group lib.size norm.factors</span>
+<span class="r-comment"># CTRL_1   CTRL     2290            1</span>
+<span class="r-comment"># TREAT_1 TREAT     2752            1</span>
+
+<span class="r-obj">keep</span> <span class="r-kw">&lt;-</span> <span class="r-fn">filterByExpr</span>(<span class="r-obj">dge</span>)
+<span class="r-obj">dge</span> <span class="r-kw">&lt;-</span> <span class="r-obj">dge</span>[<span class="r-obj">keep</span>, , keep.lib.sizes=<span class="r-kw">FALSE</span>]</pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-outline" onclick="goTo(0)">← Anterior</button><button class="btn btn-primary" onclick="goTo(2)">Próximo: TMM →</button></div>
+</section>
+
+<!-- S2 -->
+<section class="section" id="s2">
+  <div class="section-header"><span class="step-badge">PASSO 03</span><div>
+    <h2>Normalização <em>TMM</em></h2>
+    <p class="section-desc">Trimmed Mean of M-values — corrige diferenças de composição entre bibliotecas, não apenas de tamanho total.</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📐 M-values e A-values</div>
+    <div class="formula-box" style="font-size:0.9rem">
+      M<sub>g</sub> = log₂(Y<sub>gk</sub>/N<sub>k</sub>) − log₂(Y<sub>gr</sub>/N<sub>r</sub>)<br>
+      A<sub>g</sub> = ½·[log₂(Y<sub>gk</sub>/N<sub>k</sub>) + log₂(Y<sub>gr</sub>/N<sub>r</sub>)]
+      <div class="formula-label">Y=count, N=lib.size, k=amostra teste, r=referência (CTRL_2)</div>
+    </div>
+    <p>Depois de calcular M e A para cada gene, o método <strong>trima 30% dos extremos de M e 5% de A</strong>, calcula a média ponderada dos M restantes e eleva a 2:</p>
+    <div class="formula-box">norm.factor = 2<sup>média ponderada (M não trimados)</sup></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔢 Cálculo para TREAT_1 vs CTRL_2 (referência)</div>
+    <div class="calc-steps">
+      <div class="calc-row"><span class="calc-gene">GeneA</span><span class="calc-expr">log₂(540/2752) − log₂(135/2288) = −2.349 − (−4.083)</span><span class="calc-result">M = +1.734</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneB</span><span class="calc-expr">log₂(810/2752) − log₂(820/2288)</span><span class="calc-result">M = −0.285</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneD</span><span class="calc-expr">log₂(305/2752) − log₂(290/2288)</span><span class="calc-result">M = −0.193</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneF</span><span class="calc-expr">log₂(990/2752) − log₂(980/2288)</span><span class="calc-result">M = −0.252</span></div>
+    </div>
+    <p style="margin-top:14px">GeneA (M alto) é <strong>trimado</strong>. Média ponderada dos restantes ≈ <strong>−0.243</strong></p>
+    <div class="formula-box">norm.factor(TREAT_1) = 2<sup>−0.243</sup> ≈ <strong>0.846</strong></div>
+  </div>
+  <div class="card"><div class="card-title">📋 Fatores de normalização finais</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Amostra</th><th>lib.size</th><th>norm.factor</th><th>eff. lib.size</th></tr></thead>
+      <tbody>
+        <tr><td class="ctrl">CTRL_1</td><td>2290</td><td>1.181</td><td>2704</td></tr>
+        <tr><td class="ctrl">CTRL_2</td><td>2288</td><td>1.183</td><td>2707</td></tr>
+        <tr><td class="ctrl">CTRL_3</td><td>2307</td><td>1.178</td><td>2718</td></tr>
+        <tr><td class="treat">TREAT_1</td><td>2752</td><td>0.846</td><td>2329</td></tr>
+        <tr><td class="treat">TREAT_2</td><td>2790</td><td>0.835</td><td>2330</td></tr>
+        <tr><td class="treat">TREAT_3</td><td>2752</td><td>0.847</td><td>2331</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-obj">dge</span> <span class="r-kw">&lt;-</span> <span class="r-fn">calcNormFactors</span>(<span class="r-obj">dge</span>, method=<span class="r-str">"TMM"</span>)
+<span class="r-fn">cpm</span>(<span class="r-obj">dge</span>, normalized.lib.sizes=<span class="r-kw">TRUE</span>, log=<span class="r-kw">TRUE</span>) <span class="r-comment"># inspeção visual</span></pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-outline" onclick="goTo(1)">← Anterior</button><button class="btn btn-primary" onclick="goTo(3)">Próximo: Dispersão →</button></div>
+</section>
+
+<!-- S3 -->
+<section class="section" id="s3">
+  <div class="section-header"><span class="step-badge">PASSO 04</span><div>
+    <h2>Estimando a <em>Dispersão</em></h2>
+    <p class="section-desc">A dispersão mede a variabilidade biológica além do esperado por Poisson. É o parâmetro mais crítico do modelo Binomial Negativa.</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📐 Variância da Binomial Negativa</div>
+    <div class="formula-box">Var(Y) = μ + φ · μ²<div class="formula-label">μ = média esperada · φ = dispersão · BCV = √φ</div></div>
+    <p>Com n=3, as estimativas individuais por gene são instáveis. O edgeR aplica <span class="tooltip" data-tip="Empirical Bayes: puxa estimativas individuais em direção à tendência global">shrinkage bayesiano</span>, combinando dispersão por gene (tagwise) com a tendência global (trended).</p>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Dispersões estimadas</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th>φ tagwise</th><th>BCV = √φ</th><th>Interpretação</th></tr></thead>
+      <tbody>
+        <tr><td>GeneA</td><td>0.009</td><td style="color:var(--green)">9.5%</td><td style="text-align:left;color:var(--muted);font-size:12px">Baixa variabilidade intra-grupo</td></tr>
+        <tr><td>GeneB</td><td>0.008</td><td style="color:var(--green)">9.0%</td><td style="text-align:left;color:var(--muted);font-size:12px">Gene constitutivo estável</td></tr>
+        <tr><td>GeneC</td><td>0.045</td><td style="color:var(--accent2)">21.2%</td><td style="text-align:left;color:var(--muted);font-size:12px">Mais variável (counts baixos)</td></tr>
+        <tr><td>GeneD</td><td>0.010</td><td style="color:var(--green)">10.0%</td><td style="text-align:left;color:var(--muted);font-size:12px">Comportamento estável</td></tr>
+        <tr><td>GeneE</td><td>0.035</td><td style="color:var(--accent2)">18.7%</td><td style="text-align:left;color:var(--muted);font-size:12px">Variável (counts baixos)</td></tr>
+        <tr><td>GeneF</td><td>0.007</td><td style="color:var(--green)">8.4%</td><td style="text-align:left;color:var(--muted);font-size:12px">Gene housekeeping muito estável</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-obj">dge</span> <span class="r-kw">&lt;-</span> <span class="r-fn">estimateDisp</span>(<span class="r-obj">dge</span>)
+<span class="r-fn">sqrt</span>(<span class="r-obj">dge</span>$common.dispersion)  <span class="r-comment"># BCV comum ≈ 0.10</span>
+<span class="r-fn">plotBCV</span>(<span class="r-obj">dge</span>)</pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-outline" onclick="goTo(2)">← Anterior</button><button class="btn btn-primary" onclick="goTo(4)">Próximo: GLM →</button></div>
+</section>
+
+<!-- S4 -->
+<section class="section" id="s4">
+  <div class="section-header"><span class="step-badge">PASSO 05</span><div>
+    <h2>Modelo <em>GLM-QLF</em></h2>
+    <p class="section-desc">O GLM estima o efeito do tratamento (= log₂FC) para cada gene. O QLF (Quasi-Likelihood F-test) produz p-valores mais conservadores e robustos para amostras pequenas.</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📐 Preditor linear do GLM</div>
+    <div class="formula-box" style="font-size:0.9rem">log(μ<sub>ij</sub>) = log(N<sub>j</sub>) + β₀<sub>i</sub> + β₁<sub>i</sub> · x<sub>j</sub><div class="formula-label">N_j = eff.lib.size · β₀ = expressão basal (CTRL) · β₁ = efeito TREAT = log₂FC</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔢 log₂FC calculado para cada gene</div>
+    <div class="calc-steps">
+      <div class="calc-row"><span class="calc-gene">GeneA</span><span class="calc-expr">log₂(média TREAT / média CTRL) = log₂(543.3 / 121.7)</span><span class="calc-result" style="color:var(--up)">+2.16</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneB</span><span class="calc-expr">log₂(810 / 803.3)</span><span class="calc-result">+0.02</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneC</span><span class="calc-expr">log₂(12 / 50)</span><span class="calc-result" style="color:var(--down)">−2.06</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneD</span><span class="calc-expr">log₂(305 / 300)</span><span class="calc-result">+0.02</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneE</span><span class="calc-expr">log₂(94.3 / 20)</span><span class="calc-result" style="color:var(--up)">+2.24</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneF</span><span class="calc-expr">log₂(1000 / 1000)</span><span class="calc-result">0.00</span></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-obj">design</span> <span class="r-kw">&lt;-</span> <span class="r-fn">model.matrix</span>(~<span class="r-obj">group</span>)
+<span class="r-obj">fit</span>    <span class="r-kw">&lt;-</span> <span class="r-fn">glmQLFit</span>(<span class="r-obj">dge</span>, <span class="r-obj">design</span>)
+<span class="r-obj">qlf</span>    <span class="r-kw">&lt;-</span> <span class="r-fn">glmQLFTest</span>(<span class="r-obj">fit</span>, coef=<span class="r-num">2</span>)</pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-outline" onclick="goTo(3)">← Anterior</button><button class="btn btn-primary" onclick="goTo(5)">Próximo: Resultados →</button></div>
+</section>
+
+<!-- S5 -->
+<section class="section" id="s5">
+  <div class="section-header"><span class="step-badge">PASSO 06</span><div>
+    <h2>Resultados & <em>FDR</em></h2>
+    <p class="section-desc">O edgeR aplica o método Benjamini-Hochberg para controlar a taxa de falsos positivos (FDR). O resultado final é uma tabela com log₂FC, p-valor e FDR.</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📐 Correção BH para múltiplos testes</div>
+    <div class="formula-box">FDR<sub>(i)</sub> = p<sub>(i)</sub> × m / i<div class="formula-label">p_(i) = p-valor de rank i · m = total de genes testados</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Tabela final de resultados (edgeR)</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th>log₂FC</th><th>logCPM</th><th>F</th><th>p-value</th><th>FDR</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>GeneA</td><td class="sig-up">+2.16</td><td>7.42</td><td>287.4</td><td>0.000031</td><td>0.000186</td><td><span class="badge badge-up">↑ UP</span></td></tr>
+        <tr><td>GeneE</td><td class="sig-up">+2.21</td><td>5.14</td><td>198.6</td><td>0.000089</td><td>0.000267</td><td><span class="badge badge-up">↑ UP</span></td></tr>
+        <tr><td>GeneC</td><td class="sig-down">−2.08</td><td>5.55</td><td>156.3</td><td>0.000243</td><td>0.000486</td><td><span class="badge badge-down">↓ DOWN</span></td></tr>
+        <tr><td>GeneB</td><td class="ns">+0.02</td><td>9.64</td><td>0.14</td><td>0.724</td><td>0.868</td><td><span class="badge badge-ns">— NS</span></td></tr>
+        <tr><td>GeneD</td><td class="ns">+0.02</td><td>8.24</td><td>0.12</td><td>0.745</td><td>0.868</td><td><span class="badge badge-ns">— NS</span></td></tr>
+        <tr><td>GeneF</td><td class="ns">−0.01</td><td>10.0</td><td>0.03</td><td>0.878</td><td>0.878</td><td><span class="badge badge-ns">— NS</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🌋 Volcano Plot</div>
+    <canvas id="volcanoCanvas" width="900" height="280" style="width:100%;height:280px;display:block;border-radius:6px;"></canvas>
+    <p style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center">Eixo X: log₂FC · Eixo Y: −log₁₀(FDR) · Linhas: FDR=0.05 e |log₂FC|=1</p>
+  </div>
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-obj">res</span> <span class="r-kw">&lt;-</span> <span class="r-fn">topTags</span>(<span class="r-obj">qlf</span>, n=<span class="r-kw">Inf</span>)$table
+<span class="r-obj">sig</span> <span class="r-kw">&lt;-</span> <span class="r-obj">res</span>[<span class="r-obj">res</span>$FDR &lt; <span class="r-num">0.05</span> &amp; <span class="r-fn">abs</span>(<span class="r-obj">res</span>$logFC) &gt; <span class="r-num">1</span>, ]</pre>
+  </div>
+  <div class="nav-btns">
+    <button class="btn btn-outline" onclick="goTo(4)">← Anterior</button>
+    <button class="btn btn-home" onclick="location.href='rnaseq_workshop.html'">🏠 Portal</button>
+    <button class="btn btn-primary" onclick="location.href='DESeq2_tutorial.html'">Próximo: DESeq2 →</button>
+  </div>
+</section>
+
+</div>
+
+<script>
+const sections=document.querySelectorAll('.section'), steps=document.querySelectorAll('.pipe-step');
+let cur=0;
+function goTo(n){
+  sections[cur].classList.remove('active'); steps[cur].classList.remove('active');
+  cur=n; sections[cur].classList.add('active'); steps[cur].classList.add('active');
+  document.getElementById('progressBar').style.width=((n+1)/sections.length*100)+'%';
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===5) drawVolcano();
+}
+function drawVolcano(){
+  const c=document.getElementById('volcanoCanvas');
+  if(!c) return;
+  const ctx=c.getContext('2d'), W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#faf8f5'; ctx.fillRect(0,0,W,H);
+  const genes=[
+    {name:'GeneA',fc:2.16,fdr:0.000186,col:'#c0392b'},
+    {name:'GeneE',fc:2.21,fdr:0.000267,col:'#c0392b'},
+    {name:'GeneC',fc:-2.08,fdr:0.000486,col:'#1a5276'},
+    {name:'GeneB',fc:0.02,fdr:0.868,col:'#aaa'},
+    {name:'GeneD',fc:0.02,fdr:0.868,col:'#aaa'},
+    {name:'GeneF',fc:-0.01,fdr:0.878,col:'#aaa'},
+  ];
+  const pad={l:55,r:30,t:20,b:45};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const tx=fc=>pad.l+(fc+3)/6*pw;
+  const ty=v=>pad.t+ph-(v/4.5)*ph;
+  // grid
+  ctx.strokeStyle='#e8e4de'; ctx.lineWidth=1;
+  for(let f=-3;f<=3;f++){ctx.beginPath();ctx.moveTo(tx(f),pad.t);ctx.lineTo(tx(f),pad.t+ph);ctx.stroke();}
+  for(let y=0;y<=4;y++){ctx.beginPath();ctx.moveTo(pad.l,ty(y));ctx.lineTo(pad.l+pw,ty(y));ctx.stroke();}
+  // threshold
+  ctx.strokeStyle='#aaa8a0'; ctx.setLineDash([5,4]); ctx.lineWidth=1.5;
+  const yt=-Math.log10(0.05);
+  ctx.beginPath();ctx.moveTo(pad.l,ty(yt));ctx.lineTo(pad.l+pw,ty(yt));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx(1),pad.t);ctx.lineTo(tx(1),pad.t+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx(-1),pad.t);ctx.lineTo(tx(-1),pad.t+ph);ctx.stroke();
+  ctx.setLineDash([]);
+  // axes
+  ctx.strokeStyle='#c8c2b8'; ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,pad.t+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t+ph);ctx.lineTo(pad.l+pw,pad.t+ph);ctx.stroke();
+  // labels
+  ctx.fillStyle='#888'; ctx.font='12px IBM Plex Mono, monospace';
+  ctx.textAlign='center';
+  for(let f=-2;f<=2;f++) ctx.fillText(f,tx(f),pad.t+ph+18);
+  ctx.textAlign='right';
+  for(let y=0;y<=4;y++) ctx.fillText(y,pad.l-6,ty(y)+4);
+  // points
+  genes.forEach(g=>{
+    const x=tx(g.fc), y=ty(-Math.log10(g.fdr));
+    ctx.fillStyle=g.col;
+    ctx.beginPath(); ctx.arc(x,y,g.col==='#aaa'?5:7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=g.col==='#aaa'?'#666':'#222';
+    ctx.font='bold 12px IBM Plex Mono, monospace';
+    ctx.textAlign=g.fc>0?'left':'right';
+    ctx.fillText(g.name,x+(g.fc>0?12:-12),y-8);
+  });
+}
+document.getElementById('progressBar').style.width=(1/sections.length*100)+'%';
+</script>
+</body>
+</html>

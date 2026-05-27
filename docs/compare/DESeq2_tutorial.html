@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DESeq2 — Tutorial | Workshop RNA-Seq</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f3f5fb; --surface:#fff; --surface2:#edf0f8; --border:#ccd4ec;
+  --shadow:0 2px 16px rgba(20,40,100,0.08);
+  --text:#1a2340; --muted:#6170a0;
+  --accent:#1e4b8c; --accent-light:#e8eef8; --accent-border:#b3c5e8;
+  --accent2:#c8520a; --up:#c0392b; --down:#1a6b4a; --ns:#888;
+  --code-bg:#f4f6fb; --green:#1a6b4a; --orange:#c8520a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;line-height:1.75;}
+.top-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;font-size:13px;}
+.top-nav a{color:var(--muted);text-decoration:none;} .top-nav a:hover{color:var(--accent);}
+.sep{color:var(--border);}
+.pkg-label{background:var(--accent-light);color:var(--accent);border:1px solid var(--accent-border);border-radius:3px;padding:2px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;}
+header{background:var(--surface);border-bottom:2px solid var(--border);padding:48px 40px 40px;position:relative;overflow:hidden;}
+header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,#e8eef888,transparent 60%);pointer-events:none;}
+.header-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);border:1.5px solid var(--accent);padding:4px 12px;border-radius:2px;display:inline-block;margin-bottom:18px;}
+h1{font-family:'Lora',serif;font-size:clamp(2rem,4vw,3rem);font-weight:700;color:var(--text);line-height:1.15;}
+h1 em{color:var(--accent);font-style:italic;}
+.header-sub{margin-top:10px;color:var(--muted);max-width:580px;}
+.pipeline{display:flex;overflow-x:auto;border-bottom:2px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;scrollbar-width:none;box-shadow:0 2px 8px rgba(20,40,100,0.06);}
+.pipeline::-webkit-scrollbar{display:none;}
+.pipe-step{flex:none;display:flex;align-items:center;gap:9px;padding:13px 20px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;transition:all .2s;}
+.pipe-step:hover{color:var(--text);background:var(--surface2);}
+.pipe-step.active{color:var(--accent);border-bottom-color:var(--accent);}
+.pipe-num{width:22px;height:22px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+.progress-bar{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:9999;transition:width .3s;}
+.container{max-width:1060px;margin:0 auto;padding:0 24px;}
+.section{display:none;padding:48px 0;animation:fadeIn .35s ease;}
+.section.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.section-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:32px;}
+.step-badge{flex:none;background:var(--accent);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 10px;border-radius:3px;margin-top:6px;letter-spacing:1px;}
+.section h2{font-family:'Lora',serif;font-size:1.9rem;font-weight:700;color:var(--text);}
+.section h2 em{color:var(--accent);font-style:italic;}
+.section-desc{margin-top:6px;color:var(--muted);max-width:680px;}
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:26px;margin-bottom:18px;box-shadow:var(--shadow);}
+.card-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.tbl-wrap{overflow-x:auto;margin:14px 0;}
+table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:13px;}
+th{background:var(--surface2);color:var(--accent);padding:9px 14px;text-align:right;font-size:11px;letter-spacing:1px;border-bottom:2px solid var(--border);}
+th:first-child{text-align:left;}
+td{padding:9px 14px;border-bottom:1px solid var(--border);text-align:right;}
+td:first-child{text-align:left;font-weight:700;color:var(--accent);}
+tr:hover td{background:var(--accent-light);}
+.ctrl{color:var(--green);} .treat{color:var(--orange);}
+pre{background:var(--code-bg);border:1.5px solid var(--border);border-left:4px solid var(--accent);border-radius:8px;padding:20px 22px;overflow-x:auto;margin:14px 0;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.85;}
+.r-comment{color:#888;font-style:italic;} .r-fn{color:var(--accent);font-weight:600;} .r-str{color:#7a2d00;} .r-num{color:var(--orange);} .r-kw{color:#7a2d88;} .r-obj{color:var(--green);}
+.formula-box{background:var(--accent-light);border:1.5px solid var(--accent-border);border-radius:8px;padding:22px 26px;margin:18px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--accent);position:relative;}
+.formula-box::before{content:'FÓRMULA';position:absolute;top:7px;right:12px;font-size:9px;letter-spacing:2px;color:var(--muted);}
+.formula-label{font-size:12px;color:var(--muted);margin-top:8px;font-family:'Nunito',sans-serif;}
+.calc-steps{display:grid;gap:10px;}
+.calc-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--border);transition:border-color .2s;}
+.calc-row:hover{border-left-color:var(--accent);background:var(--accent-light);}
+.calc-gene{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent);width:70px;flex:none;font-weight:600;}
+.calc-expr{flex:1;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+.calc-result{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--text);}
+.highlight{background:var(--accent-light);border:1.5px solid var(--accent-border);border-radius:8px;padding:18px 22px;margin:16px 0;}
+.highlight.warn{background:#fff5f0;border-color:#f4c2a8;}
+.highlight.green{background:#edfaf3;border-color:#b3d9c5;}
+.hl-title{font-weight:700;color:var(--accent);margin-bottom:5px;font-size:14px;}
+.highlight.warn .hl-title{color:#c0580a;}
+.highlight.green .hl-title{color:#1a6b4a;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+.sig-up{color:var(--up);font-weight:700;} .sig-down{color:var(--down);font-weight:700;} .ns{color:var(--ns);}
+.badge{display:inline-block;font-size:11px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:3px;}
+.badge-up{background:#fde8e8;color:var(--up);border:1px solid #f4b8b8;}
+.badge-down{background:#edfaf3;color:var(--down);border:1px solid #b3d9c5;}
+.badge-ns{background:var(--surface2);color:var(--ns);border:1px solid var(--border);}
+.tooltip{position:relative;cursor:help;border-bottom:1.5px dashed var(--muted);}
+.tooltip:hover::after{content:attr(data-tip);position:absolute;bottom:125%;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-size:12px;padding:7px 12px;border-radius:5px;white-space:nowrap;z-index:999;}
+.nav-btns{display:flex;gap:12px;justify-content:flex-end;margin-top:36px;padding-top:22px;border-top:1px solid var(--border);}
+.btn{padding:10px 24px;border-radius:5px;font-size:13px;font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;font-weight:700;border:none;}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#163a70;}
+.btn-home{background:var(--surface2);color:var(--muted);border:1.5px solid var(--border);}
+.btn-home:hover{color:var(--text);border-color:var(--text);}
+p{margin-bottom:10px;} p:last-child{margin-bottom:0;}
+.inline-code{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);padding:1px 6px;border-radius:3px;color:var(--accent);}
+.deseq-special{background:linear-gradient(135deg,#eef3fc,#f8faff);border:1.5px solid var(--accent-border);border-radius:8px;padding:20px 24px;margin:16px 0;}
+.deseq-special-title{font-weight:700;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:13px;margin-bottom:8px;}
+</style>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav class="top-nav">
+  <a href="rnaseq_workshop.html">← Portal</a><span class="sep">›</span>
+  <span class="pkg-label">DESeq2</span><span class="sep">·</span>
+  <span style="color:var(--muted)">Size Factors + Wald Test + LFC Shrinkage</span>
+</nav>
+<header>
+  <div class="container">
+    <div class="header-tag">DESeq2 · Bioconductor</div>
+    <h1>Expressão Diferencial<br>com <em>DESeq2</em></h1>
+    <p class="header-sub">Normalização por mediana das razões (size factors), estimativa de dispersão com shrinkage e teste de Wald — o método mais citado em RNA-Seq.</p>
+  </div>
+</header>
+
+<nav class="pipeline" id="pipeline">
+  <button class="pipe-step active" onclick="goTo(0)"><span class="pipe-num">1</span> Dados & DESeqDS</button>
+  <button class="pipe-step" onclick="goTo(1)"><span class="pipe-num">2</span> Size Factors</button>
+  <button class="pipe-step" onclick="goTo(2)"><span class="pipe-num">3</span> Dispersão</button>
+  <button class="pipe-step" onclick="goTo(3)"><span class="pipe-num">4</span> Modelo NB</button>
+  <button class="pipe-step" onclick="goTo(4)"><span class="pipe-num">5</span> Teste de Wald</button>
+  <button class="pipe-step" onclick="goTo(5)"><span class="pipe-num">6</span> LFC Shrinkage</button>
+  <button class="pipe-step" onclick="goTo(6)"><span class="pipe-num">7</span> Resultados</button>
+</nav>
+
+<div class="container">
+
+<!-- S0 -->
+<section class="section active" id="s0">
+  <div class="section-header"><span class="step-badge">PASSO 01</span><div>
+    <h2>Dados & <em>DESeqDataSet</em></h2>
+    <p class="section-desc">O DESeq2 usa o objeto DESeqDataSet (DESeqDS), baseado no SummarizedExperiment do Bioconductor. Armazena counts, metadados de amostras e o design experimental.</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📊 Mesmo dataset de referência</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th class="ctrl">CTRL_1</th><th class="ctrl">CTRL_2</th><th class="ctrl">CTRL_3</th><th class="treat">TREAT_1</th><th class="treat">TREAT_2</th><th class="treat">TREAT_3</th></tr></thead>
+      <tbody>
+        <tr><td>GeneA</td><td>120</td><td>135</td><td>110</td><td>540</td><td>580</td><td>510</td></tr>
+        <tr><td>GeneB</td><td>800</td><td>820</td><td>790</td><td>810</td><td>795</td><td>825</td></tr>
+        <tr><td>GeneC</td><td>50</td><td>45</td><td>55</td><td>12</td><td>10</td><td>14</td></tr>
+        <tr><td>GeneD</td><td>300</td><td>290</td><td>310</td><td>305</td><td>295</td><td>315</td></tr>
+        <tr><td>GeneE</td><td>20</td><td>18</td><td>22</td><td>95</td><td>100</td><td>88</td></tr>
+        <tr><td>GeneF</td><td>1000</td><td>980</td><td>1020</td><td>990</td><td>1010</td><td>1000</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="deseq-special">
+    <div class="deseq-special-title">🆚 DESeq2 vs edgeR — Ponto de partida idêntico</div>
+    <p>Ambos recebem a mesma matriz de counts inteiros. A diferença começa na <strong>estratégia de normalização</strong> (Size Factors vs TMM) e no <strong>método de estimativa de dispersão</strong>.</p>
+  </div>
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-fn">library</span>(<span class="r-str">DESeq2</span>)
+
+<span class="r-comment"># Metadados das amostras</span>
+<span class="r-obj">coldata</span> <span class="r-kw">&lt;-</span> <span class="r-fn">data.frame</span>(
+  condition = <span class="r-fn">factor</span>(<span class="r-fn">c</span>(<span class="r-str">"CTRL"</span>,<span class="r-str">"CTRL"</span>,<span class="r-str">"CTRL"</span>,<span class="r-str">"TREAT"</span>,<span class="r-str">"TREAT"</span>,<span class="r-str">"TREAT"</span>)),
+  row.names = <span class="r-fn">colnames</span>(<span class="r-obj">counts</span>)
+)
+
+<span class="r-comment"># Criar o objeto DESeqDataSet</span>
+<span class="r-obj">dds</span> <span class="r-kw">&lt;-</span> <span class="r-fn">DESeqDataSetFromMatrix</span>(
+  countData = <span class="r-obj">counts</span>,
+  colData   = <span class="r-obj">coldata</span>,
+  design    = ~<span class="r-obj">condition</span>
+)
+
+<span class="r-comment"># Filtrar genes com poucos counts</span>
+<span class="r-obj">dds</span> <span class="r-kw">&lt;-</span> <span class="r-obj">dds</span>[<span class="r-fn">rowSums</span>(<span class="r-fn">counts</span>(<span class="r-obj">dds</span>)) &gt;= <span class="r-num">10</span>, ]</pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-primary" onclick="goTo(1)">Próximo: Size Factors →</button></div>
+</section>
+
+<!-- S1: SIZE FACTORS -->
+<section class="section" id="s1">
+  <div class="section-header"><span class="step-badge">PASSO 02</span><div>
+    <h2>Normalização por <em>Size Factors</em></h2>
+    <p class="section-desc">O método de Anders & Huber (2010) usa a mediana das razões de cada gene em relação a uma amostra de referência geométrica — robusto a genes com expressão muito alta.</p>
+  </div></div>
+
+  <div class="card">
+    <div class="card-title">📐 Algoritmo de Size Factors — 3 etapas</div>
+    <p><strong>Etapa 1:</strong> Calcular a <span class="tooltip" data-tip="Média geométrica = (x₁·x₂·…·xₙ)^(1/n) — menos sensível a outliers">média geométrica</span> de cada gene através de todas as amostras:</p>
+    <div class="formula-box">g<sub>i</sub> = (∏<sub>j</sub> counts<sub>ij</sub>)<sup>1/n</sup> = exp(mean(log(counts<sub>ij</sub>)))<div class="formula-label">g_i = pseudo-referência do gene i</div></div>
+
+    <p><strong>Etapa 2:</strong> Para cada amostra, calcular a razão de cada gene em relação à sua pseudo-referência:</p>
+    <div class="formula-box">r<sub>ij</sub> = counts<sub>ij</sub> / g<sub>i</sub><div class="formula-label">razão do gene i na amostra j</div></div>
+
+    <p><strong>Etapa 3:</strong> O size factor de cada amostra é a <strong>mediana</strong> dessas razões:</p>
+    <div class="formula-box">s<sub>j</sub> = mediana<sub>i</sub>(r<sub>ij</sub>)<div class="formula-label">Mediana torna o método robusto a genes diferencialmente expressos</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔢 Cálculo passo a passo</div>
+    <p><strong>Etapa 1 — Média geométrica por gene:</strong></p>
+    <div class="calc-steps">
+      <div class="calc-row"><span class="calc-gene">GeneA</span><span class="calc-expr">(120×135×110×540×580×510)^(1/6) = exp(mean(log(...)))</span><span class="calc-result">g = 293.4</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneB</span><span class="calc-expr">(800×820×790×810×795×825)^(1/6)</span><span class="calc-result">g = 806.6</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneC</span><span class="calc-expr">(50×45×55×12×10×14)^(1/6)</span><span class="calc-result">g = 25.1</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneD</span><span class="calc-expr">(300×290×310×305×295×315)^(1/6)</span><span class="calc-result">g = 302.4</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneE</span><span class="calc-expr">(20×18×22×95×100×88)^(1/6)</span><span class="calc-result">g = 44.7</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneF</span><span class="calc-expr">(1000×980×1020×990×1010×1000)^(1/6)</span><span class="calc-result">g = 999.9</span></div>
+    </div>
+
+    <p style="margin-top:18px"><strong>Etapa 2 — Razões para CTRL_1:</strong></p>
+    <div class="calc-steps">
+      <div class="calc-row"><span class="calc-gene">GeneA</span><span class="calc-expr">120 / 293.4</span><span class="calc-result">r = 0.409</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneB</span><span class="calc-expr">800 / 806.6</span><span class="calc-result">r = 0.992</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneC</span><span class="calc-expr">50 / 25.1</span><span class="calc-result">r = 1.992</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneD</span><span class="calc-expr">300 / 302.4</span><span class="calc-result">r = 0.992</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneE</span><span class="calc-expr">20 / 44.7</span><span class="calc-result">r = 0.447</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneF</span><span class="calc-expr">1000 / 999.9</span><span class="calc-result">r = 1.000</span></div>
+    </div>
+    <p style="margin-top:14px">Razões ordenadas: 0.409, 0.447, <strong>0.992</strong>, <strong>0.992</strong>, 1.000, 1.992</p>
+    <div class="formula-box">s(CTRL_1) = mediana = (0.992 + 0.992) / 2 = <strong>0.992</strong></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Size factors finais</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Amostra</th><th>Size Factor</th><th>Interpretação</th></tr></thead>
+      <tbody>
+        <tr><td class="ctrl">CTRL_1</td><td>0.992</td><td style="text-align:left;color:var(--muted);font-size:12px">Ligeiramente abaixo da referência</td></tr>
+        <tr><td class="ctrl">CTRL_2</td><td>1.008</td><td style="text-align:left;color:var(--muted);font-size:12px">Próximo da referência</td></tr>
+        <tr><td class="ctrl">CTRL_3</td><td>0.996</td><td style="text-align:left;color:var(--muted);font-size:12px">Próximo da referência</td></tr>
+        <tr><td class="treat">TREAT_1</td><td>1.003</td><td style="text-align:left;color:var(--muted);font-size:12px">Robustez: GeneA não influencia</td></tr>
+        <tr><td class="treat">TREAT_2</td><td>1.005</td><td style="text-align:left;color:var(--muted);font-size:12px">GeneA não distorce o size factor</td></tr>
+        <tr><td class="treat">TREAT_3</td><td>0.998</td><td style="text-align:left;color:var(--muted);font-size:12px">Robustez mantida</td></tr>
+      </tbody>
+    </table></div>
+    <div class="highlight green" style="margin-top:14px">
+      <div class="hl-title">💡 Por que size factors ≈ 1.0 mesmo com bibliotecas diferentes?</div>
+      A <strong>mediana</strong> ignora GeneA (UP) e GeneC (DOWN). Os genes "estáveis" (B, D, F) dominam o cálculo — exatamente o comportamento desejado. O TMM do edgeR chega a um efeito similar, mas pela via das M-values.
+    </div>
+  </div>
+
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-comment"># DESeq2 calcula size factors automaticamente dentro de DESeq()</span>
+<span class="r-comment"># Mas pode ser chamado separadamente:</span>
+<span class="r-obj">dds</span> <span class="r-kw">&lt;-</span> <span class="r-fn">estimateSizeFactors</span>(<span class="r-obj">dds</span>)
+<span class="r-fn">sizeFactors</span>(<span class="r-obj">dds</span>)
+
+<span class="r-comment"># Counts normalizados (para visualização — NÃO usados no modelo)</span>
+<span class="r-fn">counts</span>(<span class="r-obj">dds</span>, normalized=<span class="r-kw">TRUE</span>)</pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-outline" onclick="goTo(0)">← Anterior</button><button class="btn btn-primary" onclick="goTo(2)">Próximo: Dispersão →</button></div>
+</section>
+
+<!-- S2: DISPERSÃO -->
+<section class="section" id="s2">
+  <div class="section-header"><span class="step-badge">PASSO 03</span><div>
+    <h2>Estimativa de <em>Dispersão</em></h2>
+    <p class="section-desc">O DESeq2 usa uma abordagem de 3 fases para estimar a dispersão: por gene, ajuste de curva (fitted) e shrinkage por MAP (Maximum A Posteriori).</p>
+  </div></div>
+
+  <div class="card">
+    <div class="card-title">📐 Variância da Binomial Negativa no DESeq2</div>
+    <div class="formula-box">Var(K<sub>ij</sub>) = μ<sub>ij</sub> + α<sub>i</sub> · μ<sub>ij</sub>²<div class="formula-label">α_i = dispersão do gene i (equivalente ao φ do edgeR)</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔢 As 3 fases da estimativa de dispersão DESeq2</div>
+
+    <div class="deseq-special">
+      <div class="deseq-special-title">Fase 1 — Dispersão por gene (MoM)</div>
+      <p>Método dos Momentos: iguala variância observada à variância da BN e resolve para α.</p>
+      <div class="calc-steps" style="margin-top:10px">
+        <div class="calc-row"><span class="calc-gene">GeneB</span><span class="calc-expr">Var_obs=233 / μ=803, α_hat = (233−803)/803² </span><span class="calc-result">α ≈ 0.001</span></div>
+        <div class="calc-row"><span class="calc-gene">GeneC</span><span class="calc-expr">Var_obs=52 / μ=27 (norm), α_hat = (52−27)/27²</span><span class="calc-result">α ≈ 0.034</span></div>
+        <div class="calc-row"><span class="calc-gene">GeneF</span><span class="calc-expr">Var_obs=280 / μ=1000, α_hat = (280−1000)/1000²</span><span class="calc-result">α ≈ 0.001</span></div>
+      </div>
+    </div>
+
+    <div class="deseq-special" style="margin-top:12px">
+      <div class="deseq-special-title">Fase 2 — Curva de dispersão fitted</div>
+      <p>Ajusta uma curva paramétrica: <strong>α̂_fitted(μ) = a₀/μ + a₁</strong>. Genes com expressão baixa têm dispersão maior — isso é esperado biologicamente e capturado pela curva.</p>
+    </div>
+
+    <div class="deseq-special" style="margin-top:12px">
+      <div class="deseq-special-title">Fase 3 — MAP Shrinkage</div>
+      <p>A dispersão final de cada gene é puxada em direção à curva fitted usando uma prior log-Normal. Com n pequeno, estimativas por gene são instáveis — o shrinkage estabiliza sem perder informação real de genes muito variáveis.</p>
+      <div class="formula-box" style="margin-top:10px;font-size:0.85rem">α<sub>final</sub> = argmax P(α | dados) × P(α | curva fitted)<div class="formula-label">MAP: combina verossimilhança dos dados com prior da curva</div></div>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-obj">dds</span> <span class="r-kw">&lt;-</span> <span class="r-fn">estimateDispersions</span>(<span class="r-obj">dds</span>)
+
+<span class="r-comment"># Visualizar as 3 camadas de dispersão</span>
+<span class="r-fn">plotDispEsts</span>(<span class="r-obj">dds</span>)
+<span class="r-comment"># Pontos pretos = por gene | curva vermelha = fitted | azul = MAP final</span>
+
+<span class="r-comment"># Acessar dispersões</span>
+<span class="r-fn">dispersions</span>(<span class="r-obj">dds</span>)  <span class="r-comment"># dispersões finais (MAP)</span></pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-outline" onclick="goTo(1)">← Anterior</button><button class="btn btn-primary" onclick="goTo(3)">Próximo: Modelo →</button></div>
+</section>
+
+<!-- S3: MODELO -->
+<section class="section" id="s3">
+  <div class="section-header"><span class="step-badge">PASSO 04</span><div>
+    <h2>Modelo <em>Binomial Negativa</em></h2>
+    <p class="section-desc">Com size factors e dispersões estimados, o DESeq2 ajusta um GLM-BN para cada gene usando máxima verossimilhança.</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📐 O modelo de contagens do DESeq2</div>
+    <div class="formula-box" style="font-size:0.9rem">K<sub>ij</sub> ~ NegBin(μ<sub>ij</sub>, α<sub>i</sub>)<br>μ<sub>ij</sub> = s<sub>j</sub> · q<sub>ij</sub><div class="formula-label">K_ij = count observado · s_j = size factor · q_ij = expressão normalizada</div></div>
+    <div class="formula-box" style="font-size:0.9rem">log(q<sub>ij</sub>) = β<sub>i0</sub> + β<sub>i1</sub> · x<sub>j</sub><div class="formula-label">β_i0 = intercepto (nível basal CTRL) · β_i1 = efeito TREAT = LFC</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔢 LFC estimado para cada gene</div>
+    <div class="calc-steps">
+      <div class="calc-row"><span class="calc-gene">GeneA</span><span class="calc-expr">log₂(média TREAT norm / média CTRL norm) ≈ log₂(543/121.7)</span><span class="calc-result" style="color:var(--up)">LFC = +2.16</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneB</span><span class="calc-expr">log₂(810 / 803)</span><span class="calc-result">LFC = +0.01</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneC</span><span class="calc-expr">log₂(12 / 50)</span><span class="calc-result" style="color:var(--down)">LFC = −2.06</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneD</span><span class="calc-expr">log₂(305 / 300)</span><span class="calc-result">LFC = +0.02</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneE</span><span class="calc-expr">log₂(94.3 / 20)</span><span class="calc-result" style="color:var(--up)">LFC = +2.24</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneF</span><span class="calc-expr">log₂(1000 / 1000)</span><span class="calc-result">LFC = 0.00</span></div>
+    </div>
+  </div>
+  <div class="nav-btns"><button class="btn btn-outline" onclick="goTo(2)">← Anterior</button><button class="btn btn-primary" onclick="goTo(4)">Próximo: Wald Test →</button></div>
+</section>
+
+<!-- S4: WALD TEST -->
+<section class="section" id="s4">
+  <div class="section-header"><span class="step-badge">PASSO 05</span><div>
+    <h2>Teste de <em>Wald</em></h2>
+    <p class="section-desc">O DESeq2 testa H₀: β₁ = 0 usando a estatística de Wald — razão entre o coeficiente estimado e seu erro padrão. Mais rápido que o LRT e adequado para comparações simples.</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📐 Estatística de Wald</div>
+    <div class="formula-box">W = β̂₁ / SE(β̂₁)<div class="formula-label">Sob H₀, W ~ Normal(0,1) → p-valor da distribuição normal padrão</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔢 Cálculo para genes selecionados</div>
+    <div class="calc-steps">
+      <div class="calc-row"><span class="calc-gene">GeneA</span><span class="calc-expr">β̂₁ = 2.16 · log(2) = 1.497; SE ≈ 0.088</span><span class="calc-result">W = 17.01 → p &lt; 0.0001</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneC</span><span class="calc-expr">β̂₁ = −2.06 · log(2) = −1.428; SE ≈ 0.142</span><span class="calc-result">W = −10.06 → p &lt; 0.0001</span></div>
+      <div class="calc-row"><span class="calc-gene">GeneB</span><span class="calc-expr">β̂₁ = 0.01 · log(2) = 0.007; SE ≈ 0.034</span><span class="calc-result">W = 0.21 → p = 0.834</span></div>
+    </div>
+    <div class="highlight warn" style="margin-top:14px">
+      <div class="hl-title">⚠️ Wald vs LRT</div>
+      O teste de Likelihood Ratio (LRT) é preferido quando há <strong>múltiplos níveis de um fator</strong> ou quando genes têm dispersão muito alta. Para comparações simples 2 grupos, o Wald é adequado e mais rápido.
+    </div>
+  </div>
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-comment"># nbinomWaldTest é chamado automaticamente por DESeq()</span>
+<span class="r-obj">dds</span> <span class="r-kw">&lt;-</span> <span class="r-fn">nbinomWaldTest</span>(<span class="r-obj">dds</span>)
+
+<span class="r-comment"># Extrair resultados (TREAT vs CTRL)</span>
+<span class="r-obj">res</span> <span class="r-kw">&lt;-</span> <span class="r-fn">results</span>(<span class="r-obj">dds</span>,
+         contrast = <span class="r-fn">c</span>(<span class="r-str">"condition"</span>, <span class="r-str">"TREAT"</span>, <span class="r-str">"CTRL"</span>),
+         alpha    = <span class="r-num">0.05</span>)
+<span class="r-fn">summary</span>(<span class="r-obj">res</span>)</pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-outline" onclick="goTo(3)">← Anterior</button><button class="btn btn-primary" onclick="goTo(5)">Próximo: LFC Shrinkage →</button></div>
+</section>
+
+<!-- S5: LFC SHRINKAGE -->
+<section class="section" id="s5">
+  <div class="section-header"><span class="step-badge">PASSO 06</span><div>
+    <h2><em>LFC Shrinkage</em></h2>
+    <p class="section-desc">Funcionalidade exclusiva do DESeq2: encolhimento do log₂FC estimado para genes com poucos counts ou alta variabilidade — tornando os efeitos mais confiáveis e comparáveis.</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📐 O problema sem shrinkage</div>
+    <p>Genes com <strong>counts baixos</strong> tendem a ter LFCs inflados: se um gene tem 2 reads no CTRL e 8 no TREAT, o LFC = 2 parece enorme — mas é baseado em muito pouca informação.</p>
+    <div class="deseq-special">
+      <div class="deseq-special-title">Métodos de shrinkage disponíveis</div>
+      <div class="calc-steps" style="margin-top:8px">
+        <div class="calc-row"><span class="calc-gene" style="width:80px">apeglm</span><span class="calc-expr">Prior de Cauchy. Shrinkage adaptativo — genes com forte evidência são pouco afetados</span><span class="calc-result" style="font-size:11px">⭐ Recomendado</span></div>
+        <div class="calc-row"><span class="calc-gene" style="width:80px">ashr</span><span class="calc-expr">Adaptive shrinkage — estima a distribuição dos LFCs a partir dos dados</span><span class="calc-result" style="font-size:11px">Alternativa</span></div>
+        <div class="calc-row"><span class="calc-gene" style="width:80px">normal</span><span class="calc-expr">Prior Normal. Método original do DESeq2 v1 — menos recomendado hoje</span><span class="calc-result" style="font-size:11px">Legado</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔢 Efeito do shrinkage nos nossos dados</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th>LFC original</th><th>LFC após shrinkage</th><th>Mudança</th></tr></thead>
+      <tbody>
+        <tr><td>GeneA</td><td class="sig-up">+2.16</td><td class="sig-up">+2.14</td><td style="color:var(--muted);font-size:12px;text-align:left">Pequena (counts altos)</td></tr>
+        <tr><td>GeneE</td><td class="sig-up">+2.24</td><td class="sig-up">+2.10</td><td style="color:var(--muted);font-size:12px;text-align:left">Leve (counts moderados)</td></tr>
+        <tr><td>GeneC</td><td class="sig-down">−2.06</td><td class="sig-down">−1.89</td><td style="color:var(--muted);font-size:12px;text-align:left">Moderada (counts baixos)</td></tr>
+        <tr><td>GeneB</td><td class="ns">+0.01</td><td class="ns">+0.003</td><td style="color:var(--muted);font-size:12px;text-align:left">Forte (LFC próximo de zero)</td></tr>
+        <tr><td>GeneD</td><td class="ns">+0.02</td><td class="ns">+0.004</td><td style="color:var(--muted);font-size:12px;text-align:left">Forte (LFC próximo de zero)</td></tr>
+        <tr><td>GeneF</td><td class="ns">0.00</td><td class="ns">0.000</td><td style="color:var(--muted);font-size:12px;text-align:left">Nenhuma</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-fn">library</span>(<span class="r-str">apeglm</span>)
+<span class="r-obj">res_lfc</span> <span class="r-kw">&lt;-</span> <span class="r-fn">lfcShrink</span>(<span class="r-obj">dds</span>,
+             coef = <span class="r-str">"condition_TREAT_vs_CTRL"</span>,
+             type = <span class="r-str">"apeglm"</span>)
+
+<span class="r-comment"># Comparar LFCs antes e depois</span>
+<span class="r-fn">plot</span>(<span class="r-obj">res</span>$log2FoldChange, <span class="r-obj">res_lfc</span>$log2FoldChange,
+     xlab=<span class="r-str">"LFC original"</span>, ylab=<span class="r-str">"LFC após shrinkage"</span>)
+<span class="r-fn">abline</span>(<span class="r-num">0</span>, <span class="r-num">1</span>, lty=<span class="r-num">2</span>)</pre>
+  </div>
+  <div class="nav-btns"><button class="btn btn-outline" onclick="goTo(4)">← Anterior</button><button class="btn btn-primary" onclick="goTo(6)">Próximo: Resultados →</button></div>
+</section>
+
+<!-- S6: RESULTADOS -->
+<section class="section" id="s6">
+  <div class="section-header"><span class="step-badge">PASSO 07</span><div>
+    <h2>Resultados & <em>MA Plot</em></h2>
+    <p class="section-desc">O DESeq2 também aplica correção BH e retorna a tabela final com LFC (após shrinkage), stat (Wald), p-value e padj (FDR).</p>
+  </div></div>
+  <div class="card">
+    <div class="card-title">📋 Tabela final de resultados (DESeq2)</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th>baseMean</th><th>log2FC (shrunk)</th><th>lfcSE</th><th>stat W</th><th>p-value</th><th>padj (FDR)</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>GeneA</td><td>362.1</td><td class="sig-up">+2.14</td><td>0.088</td><td>17.01</td><td>1.3e-05</td><td>7.8e-05</td><td><span class="badge badge-up">↑ UP</span></td></tr>
+        <tr><td>GeneE</td><td>57.2</td><td class="sig-up">+2.10</td><td>0.114</td><td>14.21</td><td>8.1e-05</td><td>2.4e-04</td><td><span class="badge badge-up">↑ UP</span></td></tr>
+        <tr><td>GeneC</td><td>32.7</td><td class="sig-down">−1.89</td><td>0.142</td><td>−10.06</td><td>8.6e-04</td><td>1.7e-03</td><td><span class="badge badge-down">↓ DOWN</span></td></tr>
+        <tr><td>GeneB</td><td>806.7</td><td class="ns">+0.003</td><td>0.034</td><td>0.21</td><td>0.835</td><td>1.000</td><td><span class="badge badge-ns">— NS</span></td></tr>
+        <tr><td>GeneD</td><td>302.5</td><td class="ns">+0.004</td><td>0.041</td><td>0.18</td><td>0.857</td><td>1.000</td><td><span class="badge badge-ns">— NS</span></td></tr>
+        <tr><td>GeneF</td><td>999.9</td><td class="ns">0.000</td><td>0.028</td><td>0.03</td><td>0.977</td><td>1.000</td><td><span class="badge badge-ns">— NS</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 MA Plot (log2FC × expressão média)</div>
+    <canvas id="maCanvas" width="900" height="280" style="width:100%;height:280px;display:block;border-radius:6px;"></canvas>
+    <p style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center">Eixo X: log₂(baseMean) · Eixo Y: log₂FC (após shrinkage) · Linha: FC=0 · Coloridos: padj &lt; 0.05</p>
+  </div>
+  <div class="card"><div class="card-title">💻 Código R completo — pipeline DESeq2</div>
+    <pre><span class="r-comment"># Pipeline completo em uma linha:</span>
+<span class="r-obj">dds</span> <span class="r-kw">&lt;-</span> <span class="r-fn">DESeq</span>(<span class="r-obj">dds</span>)
+<span class="r-comment"># equivale a: estimateSizeFactors → estimateDispersions → nbinomWaldTest</span>
+
+<span class="r-obj">res</span>     <span class="r-kw">&lt;-</span> <span class="r-fn">results</span>(<span class="r-obj">dds</span>, contrast=<span class="r-fn">c</span>(<span class="r-str">"condition"</span>,<span class="r-str">"TREAT"</span>,<span class="r-str">"CTRL"</span>), alpha=<span class="r-num">0.05</span>)
+<span class="r-obj">res_lfc</span> <span class="r-kw">&lt;-</span> <span class="r-fn">lfcShrink</span>(<span class="r-obj">dds</span>, coef=<span class="r-str">"condition_TREAT_vs_CTRL"</span>, type=<span class="r-str">"apeglm"</span>)
+
+<span class="r-comment"># MA plot</span>
+<span class="r-fn">plotMA</span>(<span class="r-obj">res_lfc</span>, ylim=<span class="r-fn">c</span>(-<span class="r-num">4</span>,<span class="r-num">4</span>))
+
+<span class="r-comment"># Genes significativos</span>
+<span class="r-obj">sig</span> <span class="r-kw">&lt;-</span> <span class="r-fn">subset</span>(<span class="r-obj">res_lfc</span>, padj &lt; <span class="r-num">0.05</span> &amp; <span class="r-fn">abs</span>(log2FoldChange) &gt; <span class="r-num">1</span>)</pre>
+  </div>
+  <div class="nav-btns">
+    <button class="btn btn-outline" onclick="goTo(5)">← Anterior</button>
+    <button class="btn btn-home" onclick="location.href='rnaseq_workshop.html'">🏠 Portal</button>
+    <button class="btn btn-primary" onclick="location.href='NOISEq_tutorial.html'">Próximo: NOISEq →</button>
+  </div>
+</section>
+
+</div>
+<script>
+const sections=document.querySelectorAll('.section'), steps=document.querySelectorAll('.pipe-step');
+let cur=0;
+function goTo(n){
+  sections[cur].classList.remove('active');steps[cur].classList.remove('active');
+  cur=n;sections[cur].classList.add('active');steps[cur].classList.add('active');
+  document.getElementById('progressBar').style.width=((n+1)/sections.length*100)+'%';
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===6) drawMA();
+}
+function drawMA(){
+  const c=document.getElementById('maCanvas');if(!c)return;
+  const ctx=c.getContext('2d'),W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f7fc';ctx.fillRect(0,0,W,H);
+  const genes=[
+    {name:'GeneA',bm:362.1,lfc:2.14,sig:true,up:true},
+    {name:'GeneE',bm:57.2,lfc:2.10,sig:true,up:true},
+    {name:'GeneC',bm:32.7,lfc:-1.89,sig:true,up:false},
+    {name:'GeneB',bm:806.7,lfc:0.003,sig:false},
+    {name:'GeneD',bm:302.5,lfc:0.004,sig:false},
+    {name:'GeneF',bm:999.9,lfc:0.000,sig:false},
+  ];
+  const pad={l:55,r:30,t:20,b:45},pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+  const xMin=Math.log2(10),xMax=Math.log2(1200);
+  const tx=bm=>pad.l+(Math.log2(bm)-xMin)/(xMax-xMin)*pw;
+  const ty=lfc=>pad.t+ph/2-(lfc/3)*ph/2;
+  // grid
+  ctx.strokeStyle='#dde3f0';ctx.lineWidth=1;
+  [50,100,300,1000].forEach(v=>{ctx.beginPath();ctx.moveTo(tx(v),pad.t);ctx.lineTo(tx(v),pad.t+ph);ctx.stroke();});
+  [-2,-1,0,1,2].forEach(v=>{ctx.beginPath();ctx.moveTo(pad.l,ty(v));ctx.lineTo(pad.l+pw,ty(v));ctx.stroke();});
+  // zero line
+  ctx.strokeStyle='#9aabbf';ctx.lineWidth=2;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(pad.l,ty(0));ctx.lineTo(pad.l+pw,ty(0));ctx.stroke();
+  // axes
+  ctx.strokeStyle='#c0cce0';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,pad.t+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t+ph);ctx.lineTo(pad.l+pw,pad.t+ph);ctx.stroke();
+  // labels
+  ctx.fillStyle='#888';ctx.font='12px IBM Plex Mono,monospace';ctx.textAlign='center';
+  [50,100,300,1000].forEach(v=>ctx.fillText(v,tx(v),pad.t+ph+18));
+  ctx.textAlign='right';
+  [-2,-1,0,1,2].forEach(v=>ctx.fillText(v,pad.l-6,ty(v)+4));
+  // points
+  genes.forEach(g=>{
+    const x=tx(g.bm),y=ty(g.lfc);
+    ctx.fillStyle=g.sig?(g.up?'#c0392b':'#1a6b4a'):'#aab0c4';
+    ctx.beginPath();ctx.arc(x,y,g.sig?8:5,0,Math.PI*2);ctx.fill();
+    if(g.sig){
+      ctx.fillStyle='#222';ctx.font='bold 12px IBM Plex Mono,monospace';
+      ctx.textAlign='left';ctx.fillText(g.name,x+12,y-6);
+    }
+  });
+}
+document.getElementById('progressBar').style.width=(1/sections.length*100)+'%';
+</script>
+</body>
+</html>

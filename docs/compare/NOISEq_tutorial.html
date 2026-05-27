@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOISEq — Tutorial | Workshop RNA-Seq</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#fdf6f0; --surface:#fff; --surface2:#faeee4; --border:#e8d5c4;
+  --shadow:0 2px 16px rgba(100,40,10,0.08);
+  --text:#2a1a0e; --muted:#8a6a50;
+  --accent:#7a2d00; --accent-light:#faeee4; --accent-border:#e8c5a0;
+  --accent2:#1e4b8c; --up:#c0392b; --down:#1a6b4a; --ns:#888;
+  --code-bg:#fdf8f4; --blue:#1e4b8c; --orange:#c8520a;
+  --noiseq-special-bg:#fff8f3; --noiseq-special-border:#e8c5a0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;line-height:1.75;}
+
+/* NAV */
+.top-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;font-size:13px;}
+.top-nav a{color:var(--muted);text-decoration:none;} .top-nav a:hover{color:var(--accent);}
+.sep{color:var(--border);}
+.pkg-label{background:var(--accent-light);color:var(--accent);border:1px solid var(--accent-border);border-radius:3px;padding:2px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:2px solid var(--border);padding:48px 40px 40px;position:relative;overflow:hidden;}
+header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,#faeee488,transparent 60%),radial-gradient(ellipse at 20% 80%,#fdf6f066,transparent 50%);pointer-events:none;}
+.header-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);border:1.5px solid var(--accent);padding:4px 12px;border-radius:2px;display:inline-block;margin-bottom:18px;}
+h1{font-family:'Lora',serif;font-size:clamp(2rem,4vw,3rem);font-weight:700;color:var(--text);line-height:1.15;}
+h1 em{color:var(--accent);font-style:italic;}
+.header-sub{margin-top:10px;color:var(--muted);max-width:600px;}
+
+/* PIPELINE */
+.pipeline{display:flex;overflow-x:auto;border-bottom:2px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;scrollbar-width:none;box-shadow:0 2px 8px rgba(100,40,10,0.06);}
+.pipeline::-webkit-scrollbar{display:none;}
+.pipe-step{flex:none;display:flex;align-items:center;gap:9px;padding:13px 20px;cursor:pointer;border:none;border-bottom:3px solid transparent;background:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;transition:all .2s;}
+.pipe-step:hover{color:var(--text);background:var(--surface2);}
+.pipe-step.active{color:var(--accent);border-bottom-color:var(--accent);}
+.pipe-num{width:22px;height:22px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+
+/* PROGRESS */
+.progress-bar{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:9999;transition:width .3s;}
+
+/* LAYOUT */
+.container{max-width:1060px;margin:0 auto;padding:0 24px;}
+.section{display:none;padding:48px 0;animation:fadeIn .35s ease;}
+.section.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.section-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:32px;}
+.step-badge{flex:none;background:var(--accent);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 10px;border-radius:3px;margin-top:6px;letter-spacing:1px;}
+.section h2{font-family:'Lora',serif;font-size:1.9rem;font-weight:700;color:var(--text);}
+.section h2 em{color:var(--accent);font-style:italic;}
+.section-desc{margin-top:6px;color:var(--muted);max-width:680px;}
+
+/* CARDS */
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:26px;margin-bottom:18px;box-shadow:var(--shadow);}
+.card-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;margin:14px 0;}
+table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:13px;}
+th{background:var(--surface2);color:var(--accent);padding:9px 14px;text-align:right;font-size:11px;letter-spacing:1px;border-bottom:2px solid var(--border);}
+th:first-child{text-align:left;}
+td{padding:9px 14px;border-bottom:1px solid var(--border);text-align:right;}
+td:first-child{text-align:left;font-weight:700;color:var(--accent);}
+tr:hover td{background:var(--accent-light);}
+.ctrl{color:var(--blue);} .treat{color:var(--orange);}
+
+/* CODE */
+pre{background:var(--code-bg);border:1.5px solid var(--border);border-left:4px solid var(--accent);border-radius:8px;padding:20px 22px;overflow-x:auto;margin:14px 0;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.85;}
+.r-comment{color:#a08060;font-style:italic;} .r-fn{color:var(--accent);font-weight:600;} .r-str{color:#5a2000;} .r-num{color:var(--orange);} .r-kw{color:#5c1a6b;} .r-obj{color:var(--blue);}
+
+/* FORMULA */
+.formula-box{background:var(--accent-light);border:1.5px solid var(--accent-border);border-radius:8px;padding:22px 26px;margin:18px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--accent);position:relative;}
+.formula-box::before{content:'FÓRMULA';position:absolute;top:7px;right:12px;font-size:9px;letter-spacing:2px;color:var(--muted);}
+.formula-label{font-size:12px;color:var(--muted);margin-top:8px;font-family:'Nunito',sans-serif;}
+
+/* CALC STEPS */
+.calc-steps{display:grid;gap:10px;}
+.calc-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--border);transition:border-color .2s;}
+.calc-row:hover{border-left-color:var(--accent);background:var(--accent-light);}
+.calc-gene{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent);width:70px;flex:none;font-weight:600;}
+.calc-expr{flex:1;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+.calc-result{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--text);}
+
+/* HIGHLIGHTS */
+.highlight{background:var(--accent-light);border:1.5px solid var(--accent-border);border-radius:8px;padding:18px 22px;margin:16px 0;}
+.highlight.warn{background:#fff5f0;border-color:#f4c2a8;}
+.highlight.green{background:#edfaf3;border-color:#b3d9c5;}
+.highlight.blue{background:#eef3fc;border-color:#b3c5e8;}
+.hl-title{font-weight:700;color:var(--accent);margin-bottom:5px;font-size:14px;}
+.highlight.warn .hl-title{color:#c0580a;}
+.highlight.green .hl-title{color:#1a6b4a;}
+.highlight.blue .hl-title{color:#1e4b8c;}
+
+/* NOISEQ SPECIAL BOX */
+.noiseq-box{background:var(--noiseq-special-bg);border:1.5px solid var(--noiseq-special-border);border-radius:8px;padding:20px 24px;margin:16px 0;}
+.noiseq-box-title{font-weight:700;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:13px;margin-bottom:8px;letter-spacing:1px;}
+
+/* GRID */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+
+/* RESULTS */
+.sig-up{color:var(--up);font-weight:700;} .sig-down{color:var(--down);font-weight:700;} .ns{color:var(--ns);}
+.badge{display:inline-block;font-size:11px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:3px;}
+.badge-up{background:#fde8e8;color:var(--up);border:1px solid #f4b8b8;}
+.badge-down{background:#edfaf3;color:var(--down);border:1px solid #b3d9c5;}
+.badge-ns{background:var(--surface2);color:var(--ns);border:1px solid var(--border);}
+
+/* TOOLTIP */
+.tooltip{position:relative;cursor:help;border-bottom:1.5px dashed var(--muted);}
+.tooltip:hover::after{content:attr(data-tip);position:absolute;bottom:125%;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-size:12px;padding:7px 12px;border-radius:5px;white-space:nowrap;z-index:999;}
+
+/* NAV BUTTONS */
+.nav-btns{display:flex;gap:12px;justify-content:flex-end;margin-top:36px;padding-top:22px;border-top:1px solid var(--border);}
+.btn{padding:10px 24px;border-radius:5px;font-size:13px;font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;font-weight:700;border:none;}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#5a2000;}
+.btn-home{background:var(--surface2);color:var(--muted);border:1.5px solid var(--border);}
+.btn-home:hover{color:var(--text);border-color:var(--text);}
+
+/* PROBABILITY BAR */
+.prob-bar-wrap{display:flex;align-items:center;gap:12px;margin:6px 0;}
+.prob-bar-label{font-family:'IBM Plex Mono',monospace;font-size:12px;width:60px;color:var(--accent);font-weight:600;}
+.prob-bar-bg{flex:1;height:20px;background:var(--surface2);border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+.prob-bar-fill{height:100%;border-radius:3px;transition:width .6s ease;display:flex;align-items:center;padding-left:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;}
+.prob-bar-val{font-family:'IBM Plex Mono',monospace;font-size:12px;width:48px;text-align:right;font-weight:700;}
+
+p{margin-bottom:10px;} p:last-child{margin-bottom:0;}
+.inline-code{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--surface2);border:1px solid var(--border);padding:1px 6px;border-radius:3px;color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+
+<nav class="top-nav">
+  <a href="rnaseq_workshop.html">← Portal</a><span class="sep">›</span>
+  <span class="pkg-label">NOISEq</span><span class="sep">·</span>
+  <span style="color:var(--muted)">Abordagem não-paramétrica · Probabilidade de DE</span>
+</nav>
+
+<header>
+  <div class="container">
+    <div class="header-tag">NOISEq · Bioconductor</div>
+    <h1>Expressão Diferencial<br>com <em>NOISEq</em></h1>
+    <p class="header-sub">Uma abordagem não-paramétrica que modela o ruído experimental empiricamente a partir dos próprios dados — sem assumir distribuição estatística dos counts.</p>
+  </div>
+</header>
+
+<nav class="pipeline" id="pipeline">
+  <button class="pipe-step active" onclick="goTo(0)"><span class="pipe-num">1</span> Dados & Objeto</button>
+  <button class="pipe-step" onclick="goTo(1)"><span class="pipe-num">2</span> Normalização</button>
+  <button class="pipe-step" onclick="goTo(2)"><span class="pipe-num">3</span> Estatísticas M e D</button>
+  <button class="pipe-step" onclick="goTo(3)"><span class="pipe-num">4</span> Distribuição do Ruído</button>
+  <button class="pipe-step" onclick="goTo(4)"><span class="pipe-num">5</span> Probabilidade de DE</button>
+  <button class="pipe-step" onclick="goTo(5)"><span class="pipe-num">6</span> Resultados</button>
+</nav>
+
+<div class="container">
+
+<!-- ══════════════════════════════════════════════════════
+     S0 — DADOS & OBJETO
+═══════════════════════════════════════════════════════ -->
+<section class="section active" id="s0">
+  <div class="section-header">
+    <span class="step-badge">PASSO 01</span>
+    <div>
+      <h2>Dados & Objeto <em>NOISEq</em></h2>
+      <p class="section-desc">O NOISEq parte da mesma matriz de counts brutos usada pelo edgeR e DESeq2, mas não impõe nenhuma distribuição estatística aos dados — sua filosofia é fundamentalmente diferente.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🧭 A filosofia do NOISEq</div>
+    <p>edgeR e DESeq2 assumem que os counts seguem uma <strong>distribuição Binomial Negativa</strong>. O NOISEq pergunta: <em>"E se não soubermos qual distribuição seguir?"</em></p>
+    <div class="noiseq-box">
+      <div class="noiseq-box-title">💡 Ideia Central</div>
+      <p>Em vez de testar se β₁ ≠ 0 (abordagem paramétrica), o NOISEq pergunta: <strong>"A diferença entre os grupos é maior do que o ruído que eu observo dentro dos próprios dados?"</strong></p>
+      <p style="margin-top:8px">Para responder isso, ele <em>simula empiricamente</em> uma distribuição de ruído usando comparações intra-grupo — e calcula a probabilidade de a diferença observada ser real.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Mesmo dataset de referência — 6 genes × 6 amostras</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th class="ctrl">CTRL_1</th><th class="ctrl">CTRL_2</th><th class="ctrl">CTRL_3</th><th class="treat">TREAT_1</th><th class="treat">TREAT_2</th><th class="treat">TREAT_3</th></tr></thead>
+      <tbody>
+        <tr><td>GeneA</td><td>120</td><td>135</td><td>110</td><td>540</td><td>580</td><td>510</td></tr>
+        <tr><td>GeneB</td><td>800</td><td>820</td><td>790</td><td>810</td><td>795</td><td>825</td></tr>
+        <tr><td>GeneC</td><td>50</td><td>45</td><td>55</td><td>12</td><td>10</td><td>14</td></tr>
+        <tr><td>GeneD</td><td>300</td><td>290</td><td>310</td><td>305</td><td>295</td><td>315</td></tr>
+        <tr><td>GeneE</td><td>20</td><td>18</td><td>22</td><td>95</td><td>100</td><td>88</td></tr>
+        <tr><td>GeneF</td><td>1000</td><td>980</td><td>1020</td><td>990</td><td>1010</td><td>1000</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="grid2">
+    <div class="highlight green">
+      <div class="hl-title">✅ Quando o NOISEq brilha</div>
+      Dados sem replicatas (NOISEq-sim), distribuição desconhecida, amostras com grande variabilidade técnica, dados de organismos pouco caracterizados, ou quando se quer uma abordagem de validação independente.
+    </div>
+    <div class="highlight warn">
+      <div class="hl-title">⚠️ Limitações importantes</div>
+      Sem p-valores clássicos (usa <em>probabilidade de DE</em>), sem controle formal de FDR na versão básica, e menor poder estatístico quando os dados <em>realmente</em> seguem Binomial Negativa.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💻 Código R — Criando o objeto NOISEq</div>
+    <pre><span class="r-fn">library</span>(<span class="r-str">NOISeq</span>)
+
+<span class="r-comment"># Metadados das amostras (fator de condição)</span>
+<span class="r-obj">myfactors</span> <span class="r-kw">&lt;-</span> <span class="r-fn">data.frame</span>(
+  Condition = <span class="r-fn">c</span>(<span class="r-str">"CTRL"</span>,<span class="r-str">"CTRL"</span>,<span class="r-str">"CTRL"</span>,<span class="r-str">"TREAT"</span>,<span class="r-str">"TREAT"</span>,<span class="r-str">"TREAT"</span>),
+  row.names  = <span class="r-fn">colnames</span>(<span class="r-obj">counts</span>)
+)
+
+<span class="r-comment"># Criar o objeto NOISEq (equivalente ao DGEList / DESeqDataSet)</span>
+<span class="r-obj">mydata</span> <span class="r-kw">&lt;-</span> <span class="r-fn">readData</span>(
+  data    = <span class="r-obj">counts</span>,
+  factors = <span class="r-obj">myfactors</span>
+)
+
+<span class="r-comment"># mydata é um objeto S4 com slots:</span>
+<span class="r-comment"># @assayData (counts), @phenoData (metadados amostras)</span></pre>
+  </div>
+
+  <div class="nav-btns">
+    <button class="btn btn-primary" onclick="goTo(1)">Próximo: Normalização →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     S1 — NORMALIZAÇÃO
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s1">
+  <div class="section-header">
+    <span class="step-badge">PASSO 02</span>
+    <div>
+      <h2>Métodos de <em>Normalização</em></h2>
+      <p class="section-desc">O NOISEq oferece quatro métodos de normalização. A escolha influencia diretamente a estimativa de M e D — os pilares do teste. O método RPKM é o padrão, mas UQUA é frequentemente preferido.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📐 Os quatro métodos disponíveis</div>
+
+    <div class="noiseq-box">
+      <div class="noiseq-box-title">1. RPM / CPM — Reads Per Million</div>
+      <div class="formula-box" style="margin:10px 0 6px">
+        RPM<sub>ij</sub> = (counts<sub>ij</sub> / lib.size<sub>j</sub>) × 10⁶
+        <div class="formula-label">Corrige apenas pelo tamanho da biblioteca</div>
+      </div>
+    </div>
+
+    <div class="noiseq-box" style="margin-top:12px">
+      <div class="noiseq-box-title">2. RPKM — Reads Per Kilobase per Million</div>
+      <div class="formula-box" style="margin:10px 0 6px">
+        RPKM<sub>ij</sub> = (counts<sub>ij</sub> / (lib.size<sub>j</sub> × L<sub>i</sub>)) × 10⁹
+        <div class="formula-label">L_i = comprimento do gene i em pares de bases — requer anotação</div>
+      </div>
+      <p style="font-size:13px;color:var(--muted)">⚠️ Em nosso dataset de exemplo, usaremos <strong>RPM</strong> (sem comprimento de gene disponível).</p>
+    </div>
+
+    <div class="noiseq-box" style="margin-top:12px">
+      <div class="noiseq-box-title">3. UQUA — Upper Quartile</div>
+      <div class="formula-box" style="margin:10px 0 6px">
+        UQUA<sub>ij</sub> = (counts<sub>ij</sub> / Q75<sub>j</sub>) × 10⁶
+        <div class="formula-label">Q75_j = 75° percentil dos counts da amostra j (ignora zeros)</div>
+      </div>
+      <p style="font-size:13px;color:var(--muted)">Mais robusto que RPM quando há genes altamente expressos distorcendo a lib.size.</p>
+    </div>
+
+    <div class="noiseq-box" style="margin-top:12px">
+      <div class="noiseq-box-title">4. TMM — Trimmed Mean of M-values</div>
+      <p style="font-size:13px;color:var(--muted)">O mesmo TMM do edgeR, disponível também no NOISEq para compatibilidade.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔢 Normalização RPM — cálculo para todas as amostras</div>
+    <p>Primeiro calculamos as library sizes (já vistas no passo 01 do edgeR):</p>
+    <div class="calc-steps">
+      <div class="calc-row">
+        <span class="calc-gene" style="color:var(--blue)">CTRL_1</span>
+        <span class="calc-expr">lib.size = 2.290 → fator = 2.290 / 10⁶</span>
+        <span class="calc-result">÷ 0.00229</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene" style="color:var(--orange)">TREAT_1</span>
+        <span class="calc-expr">lib.size = 2.752 → fator = 2.752 / 10⁶</span>
+        <span class="calc-result">÷ 0.002752</span>
+      </div>
+    </div>
+    <p style="margin-top:14px">Valores RPM resultantes (× 10³ para legibilidade):</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th class="ctrl">CTRL_1</th><th class="ctrl">CTRL_2</th><th class="ctrl">CTRL_3</th><th class="treat">TREAT_1</th><th class="treat">TREAT_2</th><th class="treat">TREAT_3</th></tr></thead>
+      <tbody>
+        <tr><td>GeneA</td><td>52.4</td><td>59.0</td><td>47.7</td><td>196.2</td><td>207.9</td><td>185.3</td></tr>
+        <tr><td>GeneB</td><td>349.3</td><td>358.4</td><td>342.5</td><td>294.3</td><td>284.9</td><td>299.8</td></tr>
+        <tr><td>GeneC</td><td>21.8</td><td>19.7</td><td>23.8</td><td>4.4</td><td>3.6</td><td>5.1</td></tr>
+        <tr><td>GeneD</td><td>131.0</td><td>126.8</td><td>134.4</td><td>110.8</td><td>105.7</td><td>114.4</td></tr>
+        <tr><td>GeneE</td><td>8.7</td><td>7.9</td><td>9.5</td><td>34.5</td><td>35.8</td><td>32.0</td></tr>
+        <tr><td>GeneF</td><td>436.7</td><td>428.3</td><td>442.0</td><td>359.7</td><td>361.8</td><td>363.4</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔢 Normalização UQUA — cálculo do 75° percentil</div>
+    <div class="calc-steps">
+      <div class="calc-row">
+        <span class="calc-gene" style="color:var(--blue)">CTRL_1</span>
+        <span class="calc-expr">counts ordenados: 20, 50, 120, 300, 800, 1000 → Q75</span>
+        <span class="calc-result">Q75 = 800</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene" style="color:var(--blue)">CTRL_2</span>
+        <span class="calc-expr">counts: 18, 45, 135, 290, 820, 980 → Q75</span>
+        <span class="calc-result">Q75 = 820</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene" style="color:var(--orange)">TREAT_1</span>
+        <span class="calc-expr">counts: 12, 95, 305, 540, 810, 990 → Q75</span>
+        <span class="calc-result">Q75 = 810</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene" style="color:var(--orange)">TREAT_2</span>
+        <span class="calc-expr">counts: 10, 100, 295, 580, 795, 1010 → Q75</span>
+        <span class="calc-result">Q75 = 795</span>
+      </div>
+    </div>
+    <p style="margin-top:12px">UQUA(GeneA, CTRL_1) = (120 / 800) × 10⁶ = <strong style="color:var(--accent)">150.000</strong> &nbsp;|&nbsp; UQUA(GeneA, TREAT_1) = (540 / 810) × 10⁶ = <strong style="color:var(--accent)">666.667</strong></p>
+  </div>
+
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-comment"># Normalização dentro da função noiseq()</span>
+<span class="r-comment"># Opções: "rpkm", "uqua", "tmm", "n" (sem normalização)</span>
+
+<span class="r-obj">myresults</span> <span class="r-kw">&lt;-</span> <span class="r-fn">noiseq</span>(
+  <span class="r-obj">mydata</span>,
+  factor   = <span class="r-str">"Condition"</span>,
+  conditions = <span class="r-fn">c</span>(<span class="r-str">"CTRL"</span>, <span class="r-str">"TREAT"</span>),
+  norm     = <span class="r-str">"uqua"</span>,    <span class="r-comment"># método de normalização</span>
+  replicates = <span class="r-str">"biological"</span>,
+  k        = <span class="r-num">0.5</span>        <span class="r-comment"># pseudocount para zeros</span>
+)
+
+<span class="r-comment"># Ver os dados normalizados</span>
+<span class="r-fn">head</span>(<span class="r-fn">assayData</span>(<span class="r-obj">myresults</span>)$<span class="r-obj">exprs</span>)</pre>
+  </div>
+
+  <div class="nav-btns">
+    <button class="btn btn-outline" onclick="goTo(0)">← Anterior</button>
+    <button class="btn btn-primary" onclick="goTo(2)">Próximo: Estatísticas M e D →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     S2 — ESTATÍSTICAS M E D
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s2">
+  <div class="section-header">
+    <span class="step-badge">PASSO 03</span>
+    <div>
+      <h2>Estatísticas <em>M e D</em></h2>
+      <p class="section-desc">O coração do NOISEq: dois valores simples e interpretáveis calculados para cada gene, capturando tanto a magnitude quanto a divergência da expressão entre condições.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📐 Definição de M e D</div>
+
+    <div class="noiseq-box">
+      <div class="noiseq-box-title">M — Log₂ Fold Change entre condições</div>
+      <div class="formula-box" style="margin:10px 0 6px">
+        M<sub>i</sub> = log₂(mean_TREAT<sub>i</sub> + k) − log₂(mean_CTRL<sub>i</sub> + k)
+        <div class="formula-label">k = pseudocount (padrão 0.5) para evitar log(0)</div>
+      </div>
+      <p style="font-size:13px;color:var(--muted)">M é análogo ao log₂FC do edgeR/DESeq2 — mede a <strong>direção e magnitude</strong> da mudança de expressão.</p>
+    </div>
+
+    <div class="noiseq-box" style="margin-top:12px">
+      <div class="noiseq-box-title">D — Divergência absoluta entre condições</div>
+      <div class="formula-box" style="margin:10px 0 6px">
+        D<sub>i</sub> = |mean_TREAT<sub>i</sub> − mean_CTRL<sub>i</sub>|
+        <div class="formula-label">Diferença absoluta na escala normalizada — captura genes com alto nível basal</div>
+      </div>
+      <p style="font-size:13px;color:var(--muted)">D complementa M: um gene de alta expressão pode ter M pequeno mas D grande — e vice-versa. Usar os dois evita falsos positivos e negativos.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔢 Calculando M e D para cada gene (com RPM)</div>
+    <p>Médias por grupo (valores RPM × 10³):</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th>média CTRL</th><th>média TREAT</th><th>M (log₂FC)</th><th>D (|diferença|)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>GeneA</td><td class="ctrl">53.0</td><td class="treat">196.5</td>
+          <td class="sig-up">+1.89</td>
+          <td style="text-align:right;font-weight:700">143.5</td>
+        </tr>
+        <tr>
+          <td>GeneB</td><td class="ctrl">350.1</td><td class="treat">293.0</td>
+          <td class="ns">−0.26</td>
+          <td style="text-align:right;font-weight:700">57.1</td>
+        </tr>
+        <tr>
+          <td>GeneC</td><td class="ctrl">21.8</td><td class="treat">4.4</td>
+          <td class="sig-down">−2.31</td>
+          <td style="text-align:right;font-weight:700">17.4</td>
+        </tr>
+        <tr>
+          <td>GeneD</td><td class="ctrl">130.7</td><td class="treat">110.3</td>
+          <td class="ns">−0.25</td>
+          <td style="text-align:right;font-weight:700">20.4</td>
+        </tr>
+        <tr>
+          <td>GeneE</td><td class="ctrl">8.7</td><td class="treat">34.1</td>
+          <td class="sig-up">+1.97</td>
+          <td style="text-align:right;font-weight:700">25.4</td>
+        </tr>
+        <tr>
+          <td>GeneF</td><td class="ctrl">435.7</td><td class="treat">361.6</td>
+          <td class="ns">−0.27</td>
+          <td style="text-align:right;font-weight:700">74.1</td>
+        </tr>
+      </tbody>
+    </table></div>
+    <div class="highlight" style="margin-top:14px">
+      <div class="hl-title">🔍 Atenção ao GeneB e GeneF</div>
+      Ambos têm M próximo de zero (≈ −0.26), mas D relativamente alto (57 e 74). Isso ocorre porque são genes com <strong>expressão basal alta</strong> — a diferença absoluta parece grande, mas a mudança proporcional é pequena. O NOISEq usa os dois valores em conjunto para evitar classificá-los como DE.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔢 Exemplo passo a passo — GeneA</div>
+    <div class="calc-steps">
+      <div class="calc-row">
+        <span class="calc-gene">Passo 1</span>
+        <span class="calc-expr">Média CTRL (RPM): (52.4 + 59.0 + 47.7) / 3</span>
+        <span class="calc-result">= 53.0</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene">Passo 2</span>
+        <span class="calc-expr">Média TREAT (RPM): (196.2 + 207.9 + 185.3) / 3</span>
+        <span class="calc-result">= 196.5</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene">M</span>
+        <span class="calc-expr">log₂(196.5 + 0.5) − log₂(53.0 + 0.5)</span>
+        <span class="calc-result" style="color:var(--up)">= +1.89</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene">D</span>
+        <span class="calc-expr">|196.5 − 53.0|</span>
+        <span class="calc-result">= 143.5</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-comment"># Após rodar noiseq(), os valores M e D ficam no slot de resultados</span>
+<span class="r-obj">res_table</span> <span class="r-kw">&lt;-</span> <span class="r-fn">degenes</span>(<span class="r-obj">myresults</span>, q = <span class="r-num">0.8</span>, M = <span class="r-kw">NULL</span>)
+
+<span class="r-comment"># Colunas disponíveis:</span>
+<span class="r-comment">#   TREAT_mean  : média normalizada no grupo TREAT</span>
+<span class="r-comment">#   CTRL_mean   : média normalizada no grupo CTRL</span>
+<span class="r-comment">#   M           : log2FC (TREAT/CTRL)</span>
+<span class="r-comment">#   D           : diferença absoluta</span>
+<span class="r-comment">#   prob        : probabilidade de ser diferencialmente expresso</span>
+<span class="r-comment">#   ranking     : rank combinado de M e D</span></pre>
+  </div>
+
+  <div class="nav-btns">
+    <button class="btn btn-outline" onclick="goTo(1)">← Anterior</button>
+    <button class="btn btn-primary" onclick="goTo(3)">Próximo: Distribuição do Ruído →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     S3 — DISTRIBUIÇÃO DO RUÍDO
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s3">
+  <div class="section-header">
+    <span class="step-badge">PASSO 04</span>
+    <div>
+      <h2>Modelando a <em>Distribuição do Ruído</em></h2>
+      <p class="section-desc">Esta é a etapa mais original do NOISEq: em vez de uma distribuição teórica, ele constrói uma distribuição empírica do ruído fazendo comparações <em>dentro</em> de cada grupo.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎲 O que é "ruído" para o NOISEq?</div>
+    <p>Se pegarmos duas amostras do <em>mesmo grupo</em> e calcularmos M e D entre elas, a diferença que observamos é <strong>ruído</strong> — não biologia real. O NOISEq explora isso sistematicamente.</p>
+
+    <div class="noiseq-box">
+      <div class="noiseq-box-title">Modo NOISEq (com replicatas biológicas)</div>
+      <p>Gera todas as combinações par a par <em>dentro de cada grupo</em> e calcula M e D para cada par × gene:</p>
+      <div class="calc-steps" style="margin-top:10px">
+        <div class="calc-row">
+          <span class="calc-gene" style="width:120px;color:var(--blue)">CTRL_1 vs CTRL_2</span>
+          <span class="calc-expr">Para cada gene: M_ruído = log₂(CTRL_1) − log₂(CTRL_2)</span>
+          <span class="calc-result" style="font-size:11px">3 pares × 6 genes</span>
+        </div>
+        <div class="calc-row">
+          <span class="calc-gene" style="width:120px;color:var(--blue)">CTRL_1 vs CTRL_3</span>
+          <span class="calc-expr">Idem — mais amostras do ruído</span>
+          <span class="calc-result" style="font-size:11px">ruído acumulado</span>
+        </div>
+        <div class="calc-row">
+          <span class="calc-gene" style="width:120px;color:var(--blue)">CTRL_2 vs CTRL_3</span>
+          <span class="calc-expr">Idem</span>
+          <span class="calc-result" style="font-size:11px">+ 3 pares TREAT</span>
+        </div>
+      </div>
+      <p style="margin-top:10px;font-size:13px;color:var(--muted)">Com 3 replicatas por grupo, temos C(3,2) × 2 grupos = <strong>6 pares</strong> intra-grupo. Cada par gera 6 pontos de ruído (um por gene), totalizando <strong>36 pontos na distribuição empírica do ruído</strong>.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔢 Construindo a distribuição de ruído — M e D intra-grupo</div>
+    <p>Calculando M do ruído (log₂FC intra-CTRL) para cada par de replicatas:</p>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Par intra-grupo</th><th>GeneA (M ruído)</th><th>GeneB (M ruído)</th><th>GeneC (M ruído)</th><th>GeneD (M ruído)</th><th>GeneE (M ruído)</th><th>GeneF (M ruído)</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--blue)">CTRL_1 vs CTRL_2</td><td>−0.17</td><td>−0.03</td><td>+0.15</td><td>+0.05</td><td>+0.15</td><td>+0.03</td></tr>
+        <tr><td style="color:var(--blue)">CTRL_1 vs CTRL_3</td><td>+0.13</td><td>+0.01</td><td>−0.13</td><td>−0.05</td><td>−0.14</td><td>−0.03</td></tr>
+        <tr><td style="color:var(--blue)">CTRL_2 vs CTRL_3</td><td>+0.30</td><td>+0.04</td><td>−0.29</td><td>−0.10</td><td>−0.29</td><td>−0.06</td></tr>
+        <tr><td style="color:var(--orange)">TREAT_1 vs TREAT_2</td><td>−0.10</td><td>+0.03</td><td>−0.26</td><td>+0.05</td><td>−0.08</td><td>−0.03</td></tr>
+        <tr><td style="color:var(--orange)">TREAT_1 vs TREAT_3</td><td>+0.08</td><td>−0.02</td><td>−0.22</td><td>−0.05</td><td>+0.11</td><td>−0.01</td></tr>
+        <tr><td style="color:var(--orange)">TREAT_2 vs TREAT_3</td><td>+0.18</td><td>−0.05</td><td>+0.05</td><td>−0.10</td><td>+0.18</td><td>+0.01</td></tr>
+      </tbody>
+    </table></div>
+    <div class="highlight blue" style="margin-top:14px">
+      <div class="hl-title">📊 Interpretando a tabela de ruído</div>
+      Os valores de M do ruído para todos os genes estão na faixa <strong>−0.30 a +0.30</strong>. Isso significa que, por acaso (variação técnica/biológica intra-grupo), esperamos ver diferenças de até ≈ ±0.3 log₂. Qualquer valor de M do sinal <strong>muito além disso</strong> (como +1.89 do GeneA) é evidência de DE real.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💻 Código R — Modo NOISEq-bio (replicatas biológicas)</div>
+    <pre><span class="r-comment"># NOISEq-bio: usa replicatas biológicas reais</span>
+<span class="r-comment"># É o modo recomendado quando há replicatas (n ≥ 3)</span>
+<span class="r-obj">myresults</span> <span class="r-kw">&lt;-</span> <span class="r-fn">noiseqbio</span>(
+  <span class="r-obj">mydata</span>,
+  factor     = <span class="r-str">"Condition"</span>,
+  conditions = <span class="r-fn">c</span>(<span class="r-str">"CTRL"</span>, <span class="r-str">"TREAT"</span>),
+  norm       = <span class="r-str">"uqua"</span>,
+  nclust     = <span class="r-num">15</span>,    <span class="r-comment"># clusters para estimar ruído</span>
+  r          = <span class="r-num">20</span>,    <span class="r-comment"># iterações de bootstrap</span>
+  random.seed = <span class="r-num">42</span>
+)
+
+<span class="r-comment"># Modo NOISEq-sim: sem replicatas (simula ruído)</span>
+<span class="r-comment"># myresults &lt;- noiseq(mydata, factor="Condition",</span>
+<span class="r-comment">#   replicates="no", norm="uqua")</span></pre>
+  </div>
+
+  <div class="nav-btns">
+    <button class="btn btn-outline" onclick="goTo(2)">← Anterior</button>
+    <button class="btn btn-primary" onclick="goTo(4)">Próximo: Probabilidade de DE →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     S4 — PROBABILIDADE DE DE
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s4">
+  <div class="section-header">
+    <span class="step-badge">PASSO 05</span>
+    <div>
+      <h2><em>Probabilidade</em> de Expressão Diferencial</h2>
+      <p class="section-desc">O resultado central do NOISEq não é um p-valor — é uma <em>probabilidade</em>: a chance de que o sinal observado entre grupos seja maior do que o ruído modelado empiricamente.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📐 Cálculo da probabilidade de DE</div>
+
+    <div class="noiseq-box">
+      <div class="noiseq-box-title">Lógica do cálculo</div>
+      <p>Para cada gene, o NOISEq verifica quantas vezes, na distribuição empírica do ruído, os valores de M_ruído e D_ruído são <em>ambos</em> menores em magnitude do que o sinal observado (M_sinal e D_sinal):</p>
+      <div class="formula-box" style="margin:12px 0 6px;font-size:0.9rem">
+        P(DE)<sub>i</sub> = P(|M_ruído| &lt; |M_sinal<sub>i</sub>|  <strong>AND</strong>  |D_ruído| &lt; |D_sinal<sub>i</sub>|)
+        <div class="formula-label">Estimada empiricamente sobre todos os pares intra-grupo de todos os genes</div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-top:8px">Uma probabilidade de 0.95 significa: em 95% das comparações de ruído, o sinal desse gene é <strong>maior</strong> que o ruído — forte evidência de DE.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔢 Calculando P(DE) para cada gene</div>
+    <p>Distribuição de ruído consolidada: 36 pares (M_ruído, D_ruído). Para cada gene, verificamos a proporção do ruído que fica <em>abaixo</em> do sinal observado:</p>
+
+    <div class="calc-steps">
+      <div class="calc-row">
+        <span class="calc-gene">GeneA</span>
+        <span class="calc-expr">M_sinal=+1.89, D_sinal=143.5 → fração do ruído abaixo:</span>
+        <span class="calc-result" style="color:var(--up)">P = 0.998</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene">GeneE</span>
+        <span class="calc-expr">M_sinal=+1.97, D_sinal=25.4 → fração do ruído abaixo:</span>
+        <span class="calc-result" style="color:var(--up)">P = 0.989</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene">GeneC</span>
+        <span class="calc-expr">M_sinal=−2.31, D_sinal=17.4 → fração do ruído abaixo:</span>
+        <span class="calc-result" style="color:var(--up)">P = 0.971</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene">GeneB</span>
+        <span class="calc-expr">M_sinal=−0.26, D_sinal=57.1 → D grande, M pequeno:</span>
+        <span class="calc-result">P = 0.412</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene">GeneD</span>
+        <span class="calc-expr">M_sinal=−0.25, D_sinal=20.4 → ambos moderados:</span>
+        <span class="calc-result">P = 0.381</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-gene">GeneF</span>
+        <span class="calc-expr">M_sinal=−0.27, D_sinal=74.1 → M pequeno apesar de D alto:</span>
+        <span class="calc-result">P = 0.388</span>
+      </div>
+    </div>
+
+    <div class="highlight warn" style="margin-top:16px">
+      <div class="hl-title">⚠️ GeneB e GeneF — A armadilha do D alto</div>
+      GeneB e GeneF têm D elevado (57 e 74) por serem genes muito expressos. Mas como M ≈ −0.26, a distribuição do ruído também produz valores de D igualmente altos para outros genes muito expressos. O NOISEq penaliza corretamente esses genes ao exigir que <strong>ambos</strong> M e D sejam superiores ao ruído.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Probabilidades de DE visualizadas</div>
+
+    <div style="margin:8px 0 20px">
+      <div class="prob-bar-wrap">
+        <span class="prob-bar-label">GeneA</span>
+        <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:99.8%;background:#c0392b">↑ UP</div></div>
+        <span class="prob-bar-val" style="color:#c0392b">0.998</span>
+      </div>
+      <div class="prob-bar-wrap">
+        <span class="prob-bar-label">GeneE</span>
+        <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:98.9%;background:#c0392b">↑ UP</div></div>
+        <span class="prob-bar-val" style="color:#c0392b">0.989</span>
+      </div>
+      <div class="prob-bar-wrap">
+        <span class="prob-bar-label">GeneC</span>
+        <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:97.1%;background:#1a6b4a">↓ DN</div></div>
+        <span class="prob-bar-val" style="color:#1a6b4a">0.971</span>
+      </div>
+      <div class="prob-bar-wrap">
+        <span class="prob-bar-label">GeneB</span>
+        <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:41.2%;background:#aaa">NS</div></div>
+        <span class="prob-bar-val" style="color:#888">0.412</span>
+      </div>
+      <div class="prob-bar-wrap">
+        <span class="prob-bar-label">GeneD</span>
+        <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:38.1%;background:#aaa">NS</div></div>
+        <span class="prob-bar-val" style="color:#888">0.381</span>
+      </div>
+      <div class="prob-bar-wrap">
+        <span class="prob-bar-label">GeneF</span>
+        <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:38.8%;background:#aaa">NS</div></div>
+        <span class="prob-bar-val" style="color:#888">0.388</span>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted)">Limiar típico: <strong>prob ≥ 0.80</strong> (equivalente aproximado a FDR 20%) ou <strong>prob ≥ 0.95</strong> (mais estrito). O corte padrão recomendado pelos autores é <strong>q = 0.8</strong>.</p>
+  </div>
+
+  <div class="card"><div class="card-title">💻 Código R</div>
+    <pre><span class="r-comment"># Extrair genes DE com limiar de probabilidade</span>
+<span class="r-obj">DE_genes</span> <span class="r-kw">&lt;-</span> <span class="r-fn">degenes</span>(<span class="r-obj">myresults</span>, q = <span class="r-num">0.95</span>, M = <span class="r-kw">NULL</span>)
+<span class="r-comment"># q = limiar de probabilidade (0.8 a 0.95 são comuns)</span>
+<span class="r-comment"># M = "up" (só UP), "down" (só DOWN), ou NULL (todos)</span>
+
+<span class="r-comment"># Ver só genes UP-regulados</span>
+<span class="r-obj">UP</span>   <span class="r-kw">&lt;-</span> <span class="r-fn">degenes</span>(<span class="r-obj">myresults</span>, q = <span class="r-num">0.95</span>, M = <span class="r-str">"up"</span>)
+<span class="r-obj">DOWN</span> <span class="r-kw">&lt;-</span> <span class="r-fn">degenes</span>(<span class="r-obj">myresults</span>, q = <span class="r-num">0.95</span>, M = <span class="r-str">"down"</span>)</pre>
+  </div>
+
+  <div class="nav-btns">
+    <button class="btn btn-outline" onclick="goTo(3)">← Anterior</button>
+    <button class="btn btn-primary" onclick="goTo(5)">Próximo: Resultados →</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     S5 — RESULTADOS
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s5">
+  <div class="section-header">
+    <span class="step-badge">PASSO 06</span>
+    <div>
+      <h2>Resultados & <em>Visualização</em></h2>
+      <p class="section-desc">A tabela final do NOISEq traz M, D, probabilidade de DE e ranking. Sem p-valores clássicos — a decisão é baseada no limiar de probabilidade escolhido pelo pesquisador.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Tabela final de resultados (NOISEq)</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Gene</th><th>média CTRL</th><th>média TREAT</th><th>M (log₂FC)</th><th>D (|dif.|)</th><th>Prob. DE</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>GeneA</td><td class="ctrl">53.0</td><td class="treat">196.5</td>
+          <td class="sig-up">+1.89</td><td style="text-align:right;font-weight:700">143.5</td>
+          <td style="text-align:right;font-weight:700;color:#c0392b">0.998</td>
+          <td><span class="badge badge-up">↑ UP</span></td>
+        </tr>
+        <tr>
+          <td>GeneE</td><td class="ctrl">8.7</td><td class="treat">34.1</td>
+          <td class="sig-up">+1.97</td><td style="text-align:right;font-weight:700">25.4</td>
+          <td style="text-align:right;font-weight:700;color:#c0392b">0.989</td>
+          <td><span class="badge badge-up">↑ UP</span></td>
+        </tr>
+        <tr>
+          <td>GeneC</td><td class="ctrl">21.8</td><td class="treat">4.4</td>
+          <td class="sig-down">−2.31</td><td style="text-align:right;font-weight:700">17.4</td>
+          <td style="text-align:right;font-weight:700;color:#1a6b4a">0.971</td>
+          <td><span class="badge badge-down">↓ DOWN</span></td>
+        </tr>
+        <tr>
+          <td>GeneB</td><td class="ctrl">350.1</td><td class="treat">293.0</td>
+          <td class="ns">−0.26</td><td style="text-align:right">57.1</td>
+          <td style="text-align:right;color:var(--ns)">0.412</td>
+          <td><span class="badge badge-ns">— NS</span></td>
+        </tr>
+        <tr>
+          <td>GeneD</td><td class="ctrl">130.7</td><td class="treat">110.3</td>
+          <td class="ns">−0.25</td><td style="text-align:right">20.4</td>
+          <td style="text-align:right;color:var(--ns)">0.381</td>
+          <td><span class="badge badge-ns">— NS</span></td>
+        </tr>
+        <tr>
+          <td>GeneF</td><td class="ctrl">435.7</td><td class="treat">361.6</td>
+          <td class="ns">−0.27</td><td style="text-align:right">74.1</td>
+          <td style="text-align:right;color:var(--ns)">0.388</td>
+          <td><span class="badge badge-ns">— NS</span></td>
+        </tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:10px;font-size:13px;color:var(--muted)">Limiar utilizado: <strong>prob ≥ 0.95</strong> e <strong>|M| ≥ 1</strong>. Os mesmos três genes identificados por edgeR e DESeq2 são encontrados.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Espaço M×D — Sinal vs Ruído</div>
+    <canvas id="mdCanvas" width="900" height="320" style="width:100%;height:320px;display:block;border-radius:6px;"></canvas>
+    <p style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center">Eixo X: M (log₂FC) · Eixo Y: D (diferença absoluta) · Nuvem cinza: distribuição empírica do ruído · Pontos coloridos: sinal entre grupos</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🗺️ Gráficos disponíveis no NOISEq</div>
+    <div class="grid2">
+      <div class="noiseq-box">
+        <div class="noiseq-box-title">DE.plot()</div>
+        <p style="font-size:13px">Plota genes DE no espaço M×D, mostrando a fronteira do ruído. O equivalente visual do volcano plot.</p>
+      </div>
+      <div class="noiseq-box">
+        <div class="noiseq-box-title">explo.plot()</div>
+        <p style="font-size:13px">Exploração de qualidade: boxplots por amostra, distribuição de expressão, PCA e densidade — essencial para QC antes da análise.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-title">💻 Código R completo — pipeline NOISEq</div>
+    <pre><span class="r-fn">library</span>(<span class="r-str">NOISeq</span>)
+
+<span class="r-comment"># 1. Criar objeto</span>
+<span class="r-obj">mydata</span> <span class="r-kw">&lt;-</span> <span class="r-fn">readData</span>(data=<span class="r-obj">counts</span>, factors=<span class="r-obj">myfactors</span>)
+
+<span class="r-comment"># 2. QC exploratório (recomendado antes da análise)</span>
+<span class="r-fn">explo.plot</span>(<span class="r-obj">mydata</span>, factor=<span class="r-str">"Condition"</span>, plottype=<span class="r-str">"boxplot"</span>)
+
+<span class="r-comment"># 3. Rodar NOISEq-bio (com replicatas biológicas)</span>
+<span class="r-obj">myresults</span> <span class="r-kw">&lt;-</span> <span class="r-fn">noiseqbio</span>(
+  <span class="r-obj">mydata</span>,
+  factor     = <span class="r-str">"Condition"</span>,
+  conditions = <span class="r-fn">c</span>(<span class="r-str">"CTRL"</span>, <span class="r-str">"TREAT"</span>),
+  norm       = <span class="r-str">"uqua"</span>,
+  nclust     = <span class="r-num">15</span>,
+  r          = <span class="r-num">20</span>,
+  random.seed = <span class="r-num">42</span>
+)
+
+<span class="r-comment"># 4. Extrair genes DE (prob ≥ 0.95)</span>
+<span class="r-obj">DE</span> <span class="r-kw">&lt;-</span> <span class="r-fn">degenes</span>(<span class="r-obj">myresults</span>, q=<span class="r-num">0.95</span>, M=<span class="r-kw">NULL</span>)
+<span class="r-fn">head</span>(<span class="r-obj">DE</span>)
+
+<span class="r-comment"># 5. Visualizar no espaço M×D</span>
+<span class="r-fn">DE.plot</span>(<span class="r-obj">myresults</span>, q=<span class="r-num">0.95</span>, graphic=<span class="r-str">"MD"</span>)</pre>
+  </div>
+
+  <div class="nav-btns">
+    <button class="btn btn-outline" onclick="goTo(4)">← Anterior</button>
+    <button class="btn btn-home" onclick="location.href='rnaseq_workshop.html'">🏠 Portal</button>
+    <button class="btn btn-primary" onclick="location.href='comparacao_DE.html'">Ver Comparação →</button>
+  </div>
+</section>
+
+</div><!-- /container -->
+
+<script>
+const sections=document.querySelectorAll('.section'), steps=document.querySelectorAll('.pipe-step');
+let cur=0;
+function goTo(n){
+  sections[cur].classList.remove('active'); steps[cur].classList.remove('active');
+  cur=n; sections[cur].classList.add('active'); steps[cur].classList.add('active');
+  document.getElementById('progressBar').style.width=((n+1)/sections.length*100)+'%';
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===5) drawMD();
+}
+
+function drawMD(){
+  const c=document.getElementById('mdCanvas'); if(!c) return;
+  const ctx=c.getContext('2d'), W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#fdf8f4'; ctx.fillRect(0,0,W,H);
+
+  const pad={l:60,r:30,t:20,b:50};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const xMin=-3, xMax=3, yMin=0, yMax=180;
+  const tx=m=>pad.l+(m-xMin)/(xMax-xMin)*pw;
+  const ty=d=>pad.t+ph-(d-yMin)/(yMax-yMin)*ph;
+
+  // Grid
+  ctx.strokeStyle='#e8ddd4'; ctx.lineWidth=1;
+  for(let m=-2;m<=2;m++){ctx.beginPath();ctx.moveTo(tx(m),pad.t);ctx.lineTo(tx(m),pad.t+ph);ctx.stroke();}
+  [0,50,100,150].forEach(d=>{ctx.beginPath();ctx.moveTo(pad.l,ty(d));ctx.lineTo(pad.l+pw,ty(d));ctx.stroke();});
+
+  // Noise cloud — scatter of noise pairs
+  const noisePoints=[
+    {m:-0.17,d:4.5},{m:-0.03,d:0.8},{m:0.15,d:1.1},{m:0.05,d:4.1},{m:0.15,d:0.8},{m:0.03,d:2.6},
+    {m:0.13,d:4.0},{m:0.01,d:0.3},{m:-0.13,d:1.3},{m:-0.05,d:3.9},{m:-0.14,d:0.9},{m:-0.03,d:2.5},
+    {m:0.30,d:8.1},{m:0.04,d:1.0},{m:-0.29,d:2.5},{m:-0.10,d:7.9},{m:-0.29,d:1.7},{m:-0.06,d:5.1},
+    {m:-0.10,d:7.0},{m:0.03,d:1.1},{m:-0.26,d:1.0},{m:0.05,d:4.5},{m:-0.08,d:0.7},{m:-0.03,d:2.2},
+    {m:0.08,d:6.8},{m:-0.02,d:0.9},{m:-0.22,d:0.9},{m:-0.05,d:4.3},{m:0.11,d:0.7},{m:-0.01,d:2.3},
+    {m:0.18,d:13.8},{m:-0.05,d:1.8},{m:0.05,d:0.5},{m:-0.10,d:8.8},{m:0.18,d:1.4},{m:0.01,d:3.8},
+  ];
+  noisePoints.forEach(p=>{
+    ctx.fillStyle='rgba(160,140,120,0.35)';
+    ctx.beginPath(); ctx.arc(tx(p.m),ty(p.d),5,0,Math.PI*2); ctx.fill();
+  });
+
+  // Noise region label
+  ctx.fillStyle='#b0988080'; ctx.font='italic 12px Nunito, sans-serif';
+  ctx.textAlign='center'; ctx.fillText('distribuição empírica do ruído',tx(0),ty(12));
+
+  // Signal genes
+  const genes=[
+    {name:'GeneA',m:1.89,d:143.5,col:'#c0392b',up:true},
+    {name:'GeneE',m:1.97,d:25.4, col:'#c0392b',up:true},
+    {name:'GeneC',m:-2.31,d:17.4,col:'#1a6b4a',up:false},
+    {name:'GeneB',m:-0.26,d:57.1,col:'#aaa',up:null},
+    {name:'GeneD',m:-0.25,d:20.4,col:'#aaa',up:null},
+    {name:'GeneF',m:-0.27,d:74.1,col:'#aaa',up:null},
+  ];
+
+  // Axes
+  ctx.strokeStyle='#c8b8a8'; ctx.lineWidth=1.5; ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,pad.t+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t+ph);ctx.lineTo(pad.l+pw,pad.t+ph);ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle='#a08060'; ctx.font='12px IBM Plex Mono, monospace';
+  ctx.textAlign='center';
+  [-2,-1,0,1,2].forEach(v=>ctx.fillText(v,tx(v),pad.t+ph+18));
+  ctx.textAlign='right';
+  [0,50,100,150].forEach(v=>ctx.fillText(v,pad.l-6,ty(v)+4));
+
+  // Axis titles
+  ctx.fillStyle='#7a5c40'; ctx.font='13px Nunito, sans-serif';
+  ctx.textAlign='center'; ctx.fillText('M (log₂FC)',tx(0),pad.t+ph+38);
+  ctx.save(); ctx.translate(16,ty(90)); ctx.rotate(-Math.PI/2);
+  ctx.fillText('D (|diferença|)',0,0); ctx.restore();
+
+  // Vertical zero line
+  ctx.strokeStyle='#c8b8a8'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(tx(0),pad.t);ctx.lineTo(tx(0),pad.t+ph);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Plot signal genes
+  genes.forEach(g=>{
+    const x=tx(g.m), y=ty(g.d);
+    // glow for significant
+    if(g.up !== null){
+      const grd=ctx.createRadialGradient(x,y,0,x,y,20);
+      grd.addColorStop(0,g.col+'44'); grd.addColorStop(1,g.col+'00');
+      ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(x,y,20,0,Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle=g.col;
+    ctx.beginPath(); ctx.arc(x,y,g.up!==null?9:6,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(x,y,g.up!==null?9:6,0,Math.PI*2); ctx.stroke();
+
+    ctx.fillStyle=g.up!==null?g.col:'#888';
+    ctx.font='bold 12px IBM Plex Mono, monospace';
+    ctx.textAlign=g.m>0?'left':'right';
+    const ox=g.m>0?14:-14, oy=g.d>80?14:-10;
+    ctx.fillText(g.name,x+ox,y+oy);
+  });
+}
+
+document.getElementById('progressBar').style.width=(1/sections.length*100)+'%';
+</script>
+</body>
+</html>

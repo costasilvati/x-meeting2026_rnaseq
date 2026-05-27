@@ -1,18 +1,16 @@
 # edgeR {#cross}
 
+Antes de analisar a expressão diferencial de genes, vejamos como estas técnicas trabalham: [Clique AQUI para ver uma comparação de técnicas](./compare/rnaseq_workshop.html)
+
 ## Utilizando *edgeR* para avaliar expressão
 
 Vamos utilizar o método paramétrico [edgeR](https://bioconductor.org/packages/release/bioc/html/edgeR.html).
 
 Você pode baixar o RData disponível [AQUI](https://github.com/costasilvati/consexpressionR/blob/master/data/gse95077.rda).
 
-
 <!-- ## Os passos da análise -->
 
-
-
 <!--     ![](images/galaxy-stop.png) -->
-
 
 ## Introdução
 
@@ -30,8 +28,8 @@ library(edgeR)
 
 ### Importação e Preparação dos Dados
 
-- **Leitura dos dados**: Importar os dados de contagem de RNA-Seq.
-- **Criação do objeto DGEList**: Este objeto armazena as contagens de genes e as informações de grupo.
+-   **Leitura dos dados**: Importar os dados de contagem de RNA-Seq.
+-   **Criação do objeto DGEList**: Este objeto armazena as contagens de genes e as informações de grupo.
 
 ```{r, eval=FALSE}
 library(edgeR)
@@ -42,7 +40,6 @@ counts <- read.table("GSE95077_filtered.csv",
                      row.names=1)
 
 ```
-
 
 Para utilizar o edgeR é necessário criar um objeto DGEList, este objeto exige o design do experimento:
 
@@ -65,7 +62,7 @@ y.pvalues <- y.et$table$PValue
 
 ### Filtragem de Baixa Expressão
 
-- Remover genes com baixa contagem para reduzir o ruído.
+-   Remover genes com baixa contagem para reduzir o ruído.
 
 ```{r, eval=FALSE}
 keep <- filterBy(y) # TRUE ou FALSE
@@ -74,7 +71,7 @@ y <- y[keep, , keep.lib.sizes=FALSE]
 
 ### Normalização dos Dados
 
-- Normalizar as contagens para ajustar as diferenças na profundidade de sequenciamento.
+-   Normalizar as contagens para ajustar as diferenças na profundidade de sequenciamento.
 
 ### O que é Normalização?
 
@@ -82,34 +79,33 @@ A normalização é um processo fundamental na análise de dados de RNA-seq. Ela
 
 ### Por que Normalizar?
 
-- **Comparabilidade:** Permite comparar níveis de expressão entre amostras com diferentes profundidades de sequenciamento.
-- **Identificação de genes diferencialmente expressos:** Ajuda a identificar genes realmente diferenciados entre condições.
-- **Melhora da precisão de testes estatísticos:** Aumenta a potência dos testes estatísticos.
+-   **Comparabilidade:** Permite comparar níveis de expressão entre amostras com diferentes profundidades de sequenciamento.
+-   **Identificação de genes diferencialmente expressos:** Ajuda a identificar genes realmente diferenciados entre condições.
+-   **Melhora da precisão de testes estatísticos:** Aumenta a potência dos testes estatísticos.
 
 ## O Método calcNormFactors
 
 ### Método TMM (Trimmed Mean of M-values)
 
-- **Cálculo de razões:** Calcula a razão das contagens de cada gene para cada par de amostras.
-- **Remoção de outliers:** Remove valores extremos dessas razões.
-- **Cálculo da média geométrica:** Calcula a média geométrica das razões restantes.
-- **Estimação dos fatores de normalização:** Estima fatores que fazem a média geométrica das razões normalizadas ser próxima a 1.
+-   **Cálculo de razões:** Calcula a razão das contagens de cada gene para cada par de amostras.
+-   **Remoção de outliers:** Remove valores extremos dessas razões.
+-   **Cálculo da média geométrica:** Calcula a média geométrica das razões restantes.
+-   **Estimação dos fatores de normalização:** Estima fatores que fazem a média geométrica das razões normalizadas ser próxima a 1.
 
 ## Outros Métodos de Normalização
 
 Além do TMM, o `edgeR` oferece outros métodos:
 
-- **RLE (Relative Log Expression):** Calcula um fator de normalização para cada amostra.
-- **Upper quartile:** Utiliza o quartil superior das razões de contagens.
+-   **RLE (Relative Log Expression):** Calcula um fator de normalização para cada amostra.
+-   **Upper quartile:** Utiliza o quartil superior das razões de contagens.
 
 ## Escolhendo o Método Adequado
 
 A escolha do método depende das características dos dados e dos objetivos da análise:
 
-- **TMM:** Geralmente o mais robusto e recomendado.
-- **RLE:** Mais simples e rápido, mas pode ser mais sensível a outliers.
-- **Upper quartile:** Menos utilizado e pode ser menos preciso.
-
+-   **TMM:** Geralmente o mais robusto e recomendado.
+-   **RLE:** Mais simples e rápido, mas pode ser mais sensível a outliers.
+-   **Upper quartile:** Menos utilizado e pode ser menos preciso.
 
 ```{r, eval=FALSE}
 y <- calcNormFactors(y, method="TMM")
@@ -137,9 +133,9 @@ A dispersão tagwise é uma estimativa específica para cada gene (ou tag). Esta
 
 A função `estimateDisp` realiza os seguintes passos para estimar as dispersões:
 
-1. **Cálculo da Verossimilhança**: Para cada gene, a função calcula uma matriz de verossimilhanças em um conjunto de pontos de grade de dispersão.
-2. **Ajuste da Curva de Tendência**: Se a dispersão trended for estimada, uma curva de suavização é ajustada aos valores de dispersão em função da abundância média dos genes.
-3. **Estimativa Empírica Bayesiana**: A função aplica um método empírico Bayesiano ponderado para obter as estimativas de dispersão posterior. Isso combina a informação da dispersão comum, trended e a variabilidade observada para cada gene.
+1.  **Cálculo da Verossimilhança**: Para cada gene, a função calcula uma matriz de verossimilhanças em um conjunto de pontos de grade de dispersão.
+2.  **Ajuste da Curva de Tendência**: Se a dispersão trended for estimada, uma curva de suavização é ajustada aos valores de dispersão em função da abundância média dos genes.
+3.  **Estimativa Empírica Bayesiana**: A função aplica um método empírico Bayesiano ponderado para obter as estimativas de dispersão posterior. Isso combina a informação da dispersão comum, trended e a variabilidade observada para cada gene.
 
 **Código: Estimar a dispersão comum, trended e tagwise.**
 
@@ -149,7 +145,7 @@ y <- estimateDisp(y)
 
 ### Teste de Expressão Diferencial
 
-- Utilizar o teste exato de Fisher modificado para dados de contagem.
+-   Utilizar o teste exato de Fisher modificado para dados de contagem.
 
 ```{r, eval=FALSE}
 et <- exactTest(y)
@@ -157,7 +153,7 @@ et <- exactTest(y)
 
 ### Resultados
 
-- Extrair os resultados e visualizar os genes diferencialmente expressos.
+-   Extrair os resultados e visualizar os genes diferencialmente expressos.
 
 ```{r, eval=FALSE}
 guardar <- topTags(et)
@@ -165,8 +161,8 @@ guardar <- topTags(et)
 
 ## Parâmetros Utilizados
 
-- **DGEList**: Cria um objeto que contém as contagens de genes e as informações de grupo.
-- **filterByExpr**: Filtra genes com baixa expressão para melhorar a precisão da análise.
-- **calcNormFactors**: Calcula fatores de normalização para ajustar as diferenças na profundidade de sequenciamento.
-- **estimateDisp**: Estima a dispersão dos dados, essencial para modelar a variabilidade biológica.
-- **exactTest**: Realiza o teste exato de Fisher modificado para identificar genes diferencialmente expressos.
+-   **DGEList**: Cria um objeto que contém as contagens de genes e as informações de grupo.
+-   **filterByExpr**: Filtra genes com baixa expressão para melhorar a precisão da análise.
+-   **calcNormFactors**: Calcula fatores de normalização para ajustar as diferenças na profundidade de sequenciamento.
+-   **estimateDisp**: Estima a dispersão dos dados, essencial para modelar a variabilidade biológica.
+-   **exactTest**: Realiza o teste exato de Fisher modificado para identificar genes diferencialmente expressos.

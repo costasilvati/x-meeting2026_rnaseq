@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RNA-Seq DE — Workshop Bioinformática</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f2ee;
+  --surface: #ffffff;
+  --surface2: #f0ede8;
+  --border: #ddd8d0;
+  --shadow: 0 2px 16px rgba(60,40,10,0.08);
+  --text: #2c2416;
+  --muted: #7a6e5f;
+  --edger: #1a6b4a;
+  --edger-bg: #e8f5ef;
+  --edger-border: #b3d9c5;
+  --deseq: #1e4b8c;
+  --deseq-bg: #e8eef8;
+  --deseq-border: #b3c5e8;
+  --noiseq: #7a2d00;
+  --noiseq-bg: #f8ede8;
+  --noiseq-border: #e8c5b3;
+  --comp: #5c1a6b;
+  --comp-bg: #f2e8f8;
+  --comp-border: #d4b3e8;
+  --accent: #c8520a;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  min-height: 100vh;
+}
+
+header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  padding: 48px 40px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 10% 50%, #e8f5ef66, transparent 50%),
+    radial-gradient(ellipse at 90% 30%, #e8eef866, transparent 50%),
+    radial-gradient(ellipse at 50% 90%, #f8ede866, transparent 50%);
+  pointer-events: none;
+}
+
+.workshop-tag {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  padding: 4px 14px;
+  border-radius: 2px;
+  margin-bottom: 18px;
+}
+
+h1 {
+  font-family: 'Lora', serif;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.15;
+}
+h1 em { font-style: italic; color: var(--accent); }
+
+.subtitle {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 15px;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dataset-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── CARDS GRID ── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  max-width: 1000px;
+  margin: 48px auto;
+  padding: 0 24px;
+}
+
+.pkg-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 24px;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all .25s;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.pkg-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+}
+.pkg-card.edger::before { background: var(--edger); }
+.pkg-card.deseq::before { background: var(--deseq); }
+.pkg-card.noiseq::before { background: var(--noiseq); }
+.pkg-card.comp::before { background: var(--comp); }
+
+.pkg-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(60,40,10,0.14);
+}
+.pkg-card:hover.edger { border-color: var(--edger-border); }
+.pkg-card:hover.deseq { border-color: var(--deseq-border); }
+.pkg-card:hover.noiseq { border-color: var(--noiseq-border); }
+.pkg-card:hover.comp { border-color: var(--comp-border); }
+
+.pkg-icon {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+.pkg-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+.pkg-card.edger .pkg-name { color: var(--edger); }
+.pkg-card.deseq .pkg-name { color: var(--deseq); }
+.pkg-card.noiseq .pkg-name { color: var(--noiseq); }
+.pkg-card.comp .pkg-name { color: var(--comp); }
+
+.pkg-desc { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+
+.pkg-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.tag {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid;
+}
+.edger .tag { background: var(--edger-bg); color: var(--edger); border-color: var(--edger-border); }
+.deseq .tag { background: var(--deseq-bg); color: var(--deseq); border-color: var(--deseq-border); }
+.noiseq .tag { background: var(--noiseq-bg); color: var(--noiseq); border-color: var(--noiseq-border); }
+.comp .tag { background: var(--comp-bg); color: var(--comp); border-color: var(--comp-border); }
+
+.arrow {
+  margin-top: auto;
+  font-size: 18px;
+  opacity: .4;
+  transition: opacity .2s, transform .2s;
+}
+.pkg-card:hover .arrow { opacity: 1; transform: translateX(4px); }
+
+footer {
+  text-align: center;
+  padding: 32px;
+  color: var(--muted);
+  font-size: 13px;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="workshop-tag">Workshop · RNA-Seq · Expressão Diferencial</div>
+  <h1>Análise de Expressão Diferencial<br>com <em>R & Bioconductor</em></h1>
+  <p class="subtitle">Três pacotes, um mesmo dataset — entenda os cálculos internos de cada abordagem e compare seus resultados.</p>
+  <div class="dataset-badge">
+    📋 6 genes · 6 amostras · CTRL (n=3) vs TREAT (n=3)
+  </div>
+</header>
+
+<div class="cards-grid">
+
+  <a class="pkg-card edger" href="edgeR_tutorial_light.html">
+    <div class="pkg-icon">🌿</div>
+    <div class="pkg-name">edgeR</div>
+    <p class="pkg-desc">Binomial Negativa com normalização TMM e dispersão tagwise estimada por Empirical Bayes. Teste QLF para experimentos com poucas replicatas.</p>
+    <div class="pkg-tags">
+      <span class="tag">TMM</span>
+      <span class="tag">Neg. Binomial</span>
+      <span class="tag">GLM-QLF</span>
+      <span class="tag">BCV</span>
+    </div>
+    <div class="arrow">→</div>
+  </a>
+
+  <a class="pkg-card deseq" href="DESeq2_tutorial.html">
+    <div class="pkg-icon">🔵</div>
+    <div class="pkg-name">DESeq2</div>
+    <p class="pkg-desc">Normalização por mediana das razões (size factors), shrinkage de LFC com apeglm/ashr, e teste de Wald. O padrão-ouro da literatura moderna.</p>
+    <div class="pkg-tags">
+      <span class="tag">Size Factors</span>
+      <span class="tag">Neg. Binomial</span>
+      <span class="tag">Wald Test</span>
+      <span class="tag">LFC Shrinkage</span>
+    </div>
+    <div class="arrow">→</div>
+  </a>
+
+  <a class="pkg-card noiseq" href="NOISEq_tutorial.html">
+    <div class="pkg-icon">🟠</div>
+    <div class="pkg-name">NOISEq</div>
+    <p class="pkg-desc">Abordagem não-paramétrica que modela o ruído experimental empiricamente. Não assume distribuição de probabilidade — ideal para dados sem replicatas ou com distribuição desconhecida.</p>
+    <div class="pkg-tags">
+      <span class="tag">Não-paramétrico</span>
+      <span class="tag">RPKM/UQUA</span>
+      <span class="tag">Prob. DE</span>
+      <span class="tag">Sem replicatas</span>
+    </div>
+    <div class="arrow">→</div>
+  </a>
+
+  <a class="pkg-card comp" href="comparacao_DE.html">
+    <div class="pkg-icon">⚖️</div>
+    <div class="pkg-name">Comparação</div>
+    <p class="pkg-desc">Análise lado a lado dos resultados dos três pacotes. Concordância, divergências, Venn diagram e guia para escolher o método adequado.</p>
+    <div class="pkg-tags">
+      <span class="tag">Venn</span>
+      <span class="tag">Concordância</span>
+      <span class="tag">Quando usar</span>
+    </div>
+    <div class="arrow">→</div>
+  </a>
+
+</div>
+
+<footer>
+  Workshop Bioinformática · RNA-Seq · Todos os cálculos baseados no dataset de referência com 6 genes e 6 amostras
+</footer>
+
+</body>
+</html>
